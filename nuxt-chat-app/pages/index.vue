@@ -6,7 +6,7 @@
   >
     <v-col cols="auto">
       <p align="center"> <logo/></p>
-      <p align="center"> ขณะนี้เวลา <digital-clock :blink="true" :displaySeconds="true" /> </p>
+      <p align="center" class="time"> ขณะนี้เวลา <digital-clock :blink="true" :displaySeconds="true" /> </p>
       <v-card
         min-width="290"
         color="#424242"
@@ -127,3 +127,6 @@ export default {
   },
 };
 </script>
+<style lang="scss">
+  @import './assets/variables.scss';
+</style>

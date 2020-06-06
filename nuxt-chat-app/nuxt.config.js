@@ -1,14 +1,14 @@
 module.exports = {
-  server: {
-    port: 8000, // default: 3000
-    host: '192.168.1.41' // default: localhost
-  },
+  // server: {
+  //   port: 8000, // default: 3000
+  //   host: '0.0.0.0' // default: localhost
+  // },
   mode: 'universal',
   /*
   ** Headers of the page
   */
   head: {
-    titleTemplate: '%s - ' + process.env.npm_package_name,
+    // titleTemplate: '%s - ' + process.env.npm_package_name,
     title: process.env.npm_package_name || '',
     meta: [
       { charset: 'utf-8' },
@@ -77,5 +77,8 @@ module.exports = {
     extend(config, ctx) {
     },
   },
+  vuetify: {
+    customVariables: ['~/assets/variables.scss']
+  }
   
 };
