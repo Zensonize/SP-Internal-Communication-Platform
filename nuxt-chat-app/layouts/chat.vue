@@ -19,8 +19,11 @@
           </v-list-item-content>
 
           <v-list-item-icon>
-            <v-icon :color="id === user.id ? 'primary' : 'grey'">
-              mdi-account-circle-outline
+            <v-icon :color="id === user.id ? 'green' : 'grey'">
+              <!-- change color from primary to green -->
+              <!-- for current user in chat not a offline or online status -->
+              mdi-checkbox-blank-circle
+              <!-- mdi-account-circle -->
             </v-icon>
           </v-list-item-icon>
         </v-list-item>
@@ -34,7 +37,7 @@
       <v-app-bar-nav-icon @click="drawer = !drawer" />
       <v-toolbar-title>
         Room
-        <v-chip color="grey">
+        <v-chip color="blue">
           {{ user.room }}
         </v-chip>
       </v-toolbar-title>

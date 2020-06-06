@@ -13,17 +13,23 @@
   },
   "dependencies": {
     "@nuxtjs/pwa": "^3.0.0-beta.20",
+    "@nuxtjs/svg": "^0.1.11",
     "cross-env": "^5.2.0",
     "express": "^4.16.4",
+    "moment": "^2.26.0",
     "nuxt": "^2.12.2",
     "sass": "^1.26.5",
     "sass-loader": "^8.0.2",
     "socket.io": "^2.3.0",
+    "v-offline": "^1.2.1",
+    "vue-digital-clock": "^2.0.0",
+    "vue-moment": "^4.1.0",
     "vue-socket.io": "^3.0.9",
     "vuetify": "^2.2.29"
   },
   "devDependencies": {
     "@mdi/font": "^5.2.45",
+    "@nuxtjs/color-mode": "^1.0.0",
     "babel-eslint": "^10.1.0",
     "eslint": "^6.8.0",
     "eslint-config-prettier": "^6.11.0",

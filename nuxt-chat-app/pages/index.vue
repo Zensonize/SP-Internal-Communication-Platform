@@ -4,20 +4,17 @@
     align="center"
     justify="center"
   >
-
     <v-col cols="auto">
       <p align="center"> <logo/></p>
-      
+      <p align="center"> ขณะนี้เวลา <digital-clock :blink="true" :displaySeconds="true" /> </p>
       <v-card
         min-width="290"
         color="#424242"
       >
-      
         <Snackbar
           v-model="snackbar"
           :text="message"
         />
-
         <v-card-title>
           <h2>Login</h2>
         </v-card-title>
@@ -50,15 +47,18 @@
               class="mt-3"
               type="submit"
             >
-              Submit
+              join
             </v-btn>
           </v-form>
-          
         </v-card-text>
       </v-card>
-      <p align="center">Nuxt.JS Chat v0.1</p>
+     
+      <p align="center">Nuxt.JS Chat v0.1 <br> 
+     </p>
+      
+       <!-- <p>{{dateTime}}</p> -->
+       <!-- <ColorModePicker /> -->
     </v-col>
-    
   </v-row>
 </template>
 
@@ -67,13 +67,21 @@ import { mapActions } from "vuex";
 import Snackbar from "@/components/Snackbar";
 import messageDict from "@/lib/messageDict";
 import Logo from '~/components/Logo.vue'
+import offline from 'v-offline';
+import ColorModePicker from '@/components/ColorModePicker'
+import DigitalClock from "vue-digital-clock";
 
 export default {
   name: "Home",
   layout: "login",
   components: {
-    Snackbar,Logo
+    Snackbar,ColorModePicker,Logo,offline,DigitalClock
   },
+   data() {
+        return {
+            dateTime: this.$moment()
+        }
+    },
   data: () => ({
     isValid: true,
     user: {
@@ -109,35 +117,13 @@ export default {
         this.$router.push("/chat");
       }
     },
+    handleConnectivityChange(status) {
+      console.log(status);
+    },
   },
 
   head: {
-    title: "nuxt-chat-app",
+    title: "Nuxt.JS",
   },
 };
 </script>
-
-<style lang="scss">
-@font-face {
-    font-family: 'db_adman_xlight';
-    src: url('~assets/fonts/db-adman-x-li-webfont.woff2') format('woff2'),
-         url('~assets/fonts/db-adman-x-li-webfont.woff') format('woff'),
-         url('~assets/fonts/db-adman-x.ttf') format('truetype');
-    font-weight: normal;
-    font-style: normal;
-}
- body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue','Kanit', sans-serif,'Sriracha', cursive,'db_adman_xlight';
-    background-color: var(--bg);
-    color: var(--color);
-    transition: background-color .3s;
-  }
-  a {
-    color: var(--color-primary)
-  }
-h2, p, .Name,.room,.mt-3 {
-   font-family: 'Quicksand', 'Source Sans Pro', -apple-system, BlinkMacSystemFont,
-      'Segoe UI', Roboto, 'Helvetica Neue', Arial,'Kanit', sans-serif,'Sriracha', cursive,'db_adman_xlight';
-
-}
-</style>

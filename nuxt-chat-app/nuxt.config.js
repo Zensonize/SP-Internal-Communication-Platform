@@ -1,4 +1,8 @@
 module.exports = {
+  server: {
+    port: 8000, // default: 3000
+    host: '192.168.1.41' // default: localhost
+  },
   mode: 'universal',
   /*
   ** Headers of the page
@@ -22,7 +26,7 @@ module.exports = {
   /*
   ** Global CSS
   */
-  css: [
+  css: [ '@/assets/variables.scss'
   ],
   /*
   ** Plugins to load before mounting the App
@@ -30,11 +34,14 @@ module.exports = {
   plugins: [
     { src: '~/plugins/socket.client.js' },
     { src: '~/plugins/vuetify.js' },
+    '~/plugins/moment.js'
   ],
   /*
   ** Nuxt.js dev-modules
   */
   buildModules: [
+    '@nuxtjs/color-mode',
+    '@nuxtjs/svg',
   ],
   /*
   ** Nuxt.js modules
@@ -55,6 +62,7 @@ module.exports = {
       iconSrc: './static/favicon.ico',
     },
   },
+  
   /*
   ** vuetify module configuration
   ** https://github.com/nuxt-community/vuetify-module
@@ -69,4 +77,5 @@ module.exports = {
     extend(config, ctx) {
     },
   },
+  
 };
