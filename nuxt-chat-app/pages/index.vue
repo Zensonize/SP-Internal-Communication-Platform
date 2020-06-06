@@ -4,11 +4,15 @@
     align="center"
     justify="center"
   >
+
     <v-col cols="auto">
+      <p align="center"> <logo/></p>
+      
       <v-card
         min-width="290"
         color="#424242"
       >
+      
         <Snackbar
           v-model="snackbar"
           :text="message"
@@ -47,9 +51,12 @@
               Submit
             </v-btn>
           </v-form>
+          
         </v-card-text>
       </v-card>
+      <p align="center">Nuxt.JS Chat v0.1</p>
     </v-col>
+    
   </v-row>
 </template>
 
@@ -57,12 +64,13 @@
 import { mapActions } from "vuex";
 import Snackbar from "@/components/Snackbar";
 import messageDict from "@/lib/messageDict";
+import Logo from '~/components/Logo.vue'
 
 export default {
   name: "Home",
   layout: "login",
   components: {
-    Snackbar,
+    Snackbar,Logo
   },
   data: () => ({
     isValid: true,
