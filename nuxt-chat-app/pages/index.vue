@@ -34,6 +34,7 @@
               :rules="nameRules"
               label="Name"
               required
+              class="Name"
             />
             <v-text-field
               v-model="user.room"
@@ -41,6 +42,7 @@
               :rules="roomRules"
               label="Enter the room"
               required
+              class="room"
             />
             <v-btn
               :disabled="!isValid"
@@ -114,3 +116,28 @@ export default {
   },
 };
 </script>
+
+<style lang="scss">
+@font-face {
+    font-family: 'db_adman_xlight';
+    src: url('~assets/fonts/db-adman-x-li-webfont.woff2') format('woff2'),
+         url('~assets/fonts/db-adman-x-li-webfont.woff') format('woff'),
+         url('~assets/fonts/db-adman-x.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+ body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue','Kanit', sans-serif,'Sriracha', cursive,'db_adman_xlight';
+    background-color: var(--bg);
+    color: var(--color);
+    transition: background-color .3s;
+  }
+  a {
+    color: var(--color-primary)
+  }
+h2, p, .Name,.room,.mt-3 {
+   font-family: 'Quicksand', 'Source Sans Pro', -apple-system, BlinkMacSystemFont,
+      'Segoe UI', Roboto, 'Helvetica Neue', Arial,'Kanit', sans-serif,'Sriracha', cursive,'db_adman_xlight';
+
+}
+</style>
