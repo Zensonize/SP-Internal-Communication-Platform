@@ -1,8 +1,8 @@
 module.exports = {
-  // server: {
-  //   port: 8000, // default: 3000
-  //   host: '0.0.0.0' // default: localhost
-  // },
+  server: {
+    port: 8000, // default: 3000
+    host: '192.168.1.41' // default: localhost
+  },
   mode: 'universal',
   /*
   ** Headers of the page
@@ -34,7 +34,7 @@ module.exports = {
   plugins: [
     { src: '~/plugins/socket.client.js' },
     { src: '~/plugins/vuetify.js' },
-    '~/plugins/moment.js'
+    '~/plugins/moment.js',
   ],
   /*
   ** Nuxt.js dev-modules

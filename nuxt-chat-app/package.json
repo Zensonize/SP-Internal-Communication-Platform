@@ -12,6 +12,7 @@
     "heroku-postbuild": "npm run build"
   },
   "dependencies": {
+    "@growthbunker/vuedarkmode": "^0.5.56",
     "@nuxtjs/pwa": "^3.0.0-beta.20",
     "@nuxtjs/svg": "^0.1.11",
     "cross-env": "^5.2.0",
