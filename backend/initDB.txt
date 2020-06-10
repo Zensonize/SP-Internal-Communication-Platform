@@ -1,0 +1,27 @@
+CREATE ROLE me WITH LOGIN PASSWORD 'password';
+ALTER ROLE me CREATEDB;
+
+\q
+
+psql -d postgres -U me
+
+CREATE DATABASE sp_test;
+
+\c sp_test
+
+CREATE TABLE chats (
+sp_test(> id serial NOT NULL PRIMARY KEY,
+sp_test(> data json NOT NULL
+sp_test(> );
+
+CREATE TABLE users (
+sp_test(> userID serial NOT NULL PRIMARY KEY,
+sp_test(> username VARCHAR(30),
+sp_test(> email VARCHAR(30)
+sp_test(> );
+
+CREATE TABLE rooms (
+sp_test(> roomID serial NOT NULL PRIMARY KEY,
+sp_test(> roomname VARCHAR(30),
+sp_test(> roompass VARCHAR(30)
+sp_test(> );
