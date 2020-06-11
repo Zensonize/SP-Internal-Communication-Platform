@@ -1,0 +1,22 @@
+version: "3.7"
+
+services: 
+    api:
+        image: node:12-alpine
+        command: sh -c "npm install && node index.js"
+        ports: 
+            - 4000:4000
+        working_dir: /api
+        volumes: 
+            - ${PWD}/api:/api
+    pg:
+        image: postgres:13-alpine
+        ports:
+            - 5432:5432
+        volumes:
+            - ${PWD}/db:/var/lib/postgresql/data
+            - ${PWD}/sql:/docker-entrypoint-initdb.d
+        environment:
+            POSTGRES_USER: me 
+            POSTGRES_PASSWORD: password
+            POSTGRES_DB: sp_test
