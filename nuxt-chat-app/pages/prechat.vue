@@ -54,10 +54,7 @@
       </v-card>
      
       <p align="center">Nuxt.JS Chat v0.1 <br> 
-     </p>
-      
-       <!-- <p>{{dateTime}}</p> -->
-       <!-- <ColorModePicker /> -->
+      </p>
     </v-col>
   </v-row>
 </template>
@@ -66,21 +63,21 @@
 import { mapActions } from "vuex";
 import Snackbar from "@/components/Snackbar";
 import messageDict from "@/lib/messageDict";
-import Logo from '~/components/Logo.vue'
+import Logo from '~/components/Logo.vue';
 import offline from 'v-offline';
-import ColorModePicker from '@/components/ColorModePicker'
+import ColorModePicker from '@/components/ColorModePicker';
 import DigitalClock from "vue-digital-clock";
 
 export default {
-  name: "Nuxt Chat",
+  name: "NuxtChat",
   layout: "login",
   components: {
-    Snackbar,ColorModePicker,Logo,offline,DigitalClock
+    Snackbar,Logo,DigitalClock,
   },
    data() {
         return {
-            dateTime: this.$moment()
-        }
+            dateTime: this.$moment(),
+        };
     },
   data: () => ({
     isValid: true,

@@ -1,113 +1,129 @@
 <template>
-  <div class="container">
-    <div>
-      <logo />
-      <h1 class="title">Hello-From-Home</h1>
-      <h2 align="center" class="time">ขณะนี้เวลา <digital-clock :blink="true" :displaySeconds="true" class="digi-clock"/> </h2>
-      <div class="links">
-        <ColorModePicker />
-        <nuxt-link to="prechat">Nuxt Chat</nuxt-link>
-      </div>
-    </div>
-  </div>
+  <v-row
+    no-gutters
+    align="center"
+    justify="center"
+  >
+    <v-col cols="auto">
+      <p align="center"> <logo/></p>
+      <p align="center" class="time"> ขณะนี้เวลา <digital-clock :blink="true" :displaySeconds="true" /> </p>
+      <v-card
+        min-width="290"
+        color="#424242"
+      >
+        <Snackbar
+          v-model="snackbar"
+          :text="message"
+        />
+        <v-card-title>
+          <h2>Login</h2>
+        </v-card-title>
+        <v-card-text>
+          <v-form
+            ref="form"
+            v-model="isValid"
+            lazy-validation
+            @submit.prevent="submit"
+          >
+            <v-text-field
+              v-model="user.name"
+              :counter="16"
+              :rules="nameRules"
+              label="Name"
+              required
+              class="Name"
+            />
+            <v-text-field
+              v-model="user.room"
+              :counter="16"
+              :rules="roomRules"
+              label="Enter the room"
+              required
+              class="room"
+            />
+            <v-btn
+              :disabled="!isValid"
+              color="primary"
+              class="mt-3"
+              type="submit"
+            >
+              join
+            </v-btn>
+          </v-form>
+        </v-card-text>
+      </v-card>
+     
+      <p align="center">Nuxt.JS Chat v0.1 <br> 
+      </p>
+    </v-col>
+  </v-row>
 </template>
 
 <script>
+import { mapActions } from "vuex";
+import Snackbar from "@/components/Snackbar";
+import messageDict from "@/lib/messageDict";
 import Logo from '~/components/Logo.vue';
+import offline from 'v-offline';
 import ColorModePicker from '@/components/ColorModePicker';
 import DigitalClock from "vue-digital-clock";
 
 export default {
+  name: "NuxtChat",
+  layout: "login",
   components: {
-    Logo,ColorModePicker,DigitalClock,
+    Snackbar,Logo,DigitalClock,
   },
-  head: {
-    title: "Nuxt.JS",
+   data() {
+        return {
+            dateTime: this.$moment(),
+        };
+    },
+  data: () => ({
+    isValid: true,
+    user: {
+      name: "",
+      room: "",
+      typingStatus: false,
+    },
+    nameRules: [
+      v => !!v || "Name is required",
+      v => (v && v.length <= 16) || "Name must be less than 16 characters",
+    ],
+    roomRules: [
+      v => !!v || "Enter the room",
+      v => (v && v.length <= 16) || "Room must be less than 16 characters",
+    ],
+    snackbar: false,
+  }),
+  computed: {
+    message() {
+      const { message } = this.$route.query;
+      return messageDict[message] || "";
+    },
+  },
+  mounted() {
+    this.snackbar = !!this.message;
   },
 
+  methods: {
+    ...mapActions(["createUser"]),
+    submit() {
+      if (this.$refs.form.validate()) {
+        this.createUser(this.user);
+        this.$router.push("/chat");
+      }
+    },
+    handleConnectivityChange(status) {
+      console.log(status);
+    },
+  },
+
+  head: {
+    title: "Nuxt Chat",
+  },
 };
 </script>
-
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Kanit:wght@200&family=Roboto:wght@300&display=swap');
-@font-face {
-    font-family: 'db_adman_xlight';
-    src: url('~assets/fonts/db-adman-x-li-webfont.woff2') format('woff2'),
-         url('~assets/fonts/db-adman-x-li-webfont.woff') format('woff'),
-         url('~assets/fonts/db-adman-x.ttf') format('truetype');
-    font-weight: normal;
-    font-style: normal;
-
-}
-  .links {
-    padding-top: 15px;
-  }
-  .title {
-    font-family: 'Quicksand', 'Source Sans Pro', -apple-system, BlinkMacSystemFont,
-      'Segoe UI', Roboto, 'Helvetica Neue', Arial,'DB Lim X','Kanit', sans-serif,'Sriracha', cursive,'db_adman_xlight';
-    display: block;
-    font-weight: 300;
-    font-size: 100px;
-    /* color: #35495e; */
-    letter-spacing: 1px;
-  }
-  .container {
-    margin: 0 auto;
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    padding: 50px;
-  }
-
-  .subtitle {
-    font-weight: 300;
-    font-size: 36px;
-    /* color: #526488; */
-    word-spacing: 3px;
-    padding-bottom: 15px;
-  }
-  .time,h2,.digi-clock{
-    font-family: 'Kanit', sans-serif;
-  }
- 
-/* Part of Index Vue */
-
-  /* Part of Colormodepicker Vue */
-  ul {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-  ul li {
-    display: inline-block;
-    padding: 5px;
-  }
-  p {
-    margin: 0;
-    padding-top: 5px;
-  }
-  .feather {
-    position: relative;
-    top: 0px;
-    cursor: pointer;
-    padding: 7px;
-    background-color: var(--bg-secondary);
-    border: 2px solid var(--border-color);
-    margin: 0;
-    border-radius: 5px;
-    transition: all 0.1s ease;
-  }
-  .feather:hover {
-    top: -3px;
-  }
-  .feather.preferred {
-    border-color: var(--color-primary);
-    top: -3px;
-  }
-  .feather.selected {
-    color: var(--color-primary);
-  }
+<style lang="scss">
+  @import './assets/variables.scss';
 </style>
-

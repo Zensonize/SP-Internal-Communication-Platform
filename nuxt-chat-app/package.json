@@ -25,6 +25,7 @@
     "v-offline": "^1.2.1",
     "vue-digital-clock": "^2.0.0",
     "vue-moment": "^4.1.0",
+    "vue-navigation-bar": "^2.0.0",
     "vue-socket.io": "^3.0.9",
     "vuetify": "^2.2.32"
   },
