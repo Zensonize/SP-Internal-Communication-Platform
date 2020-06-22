@@ -6,7 +6,7 @@
   >
     <v-col cols="auto">
       <p align="center"> <logo/></p>
-      <p align="center" class="time"> ขณะนี้เวลา <digital-clock :blink="true" :displaySeconds="true" /> </p>
+      <h2 align="center" class="time"> ขณะนี้เวลา <digital-clock :blink="true" :displaySeconds="true" /> </h2>
       <v-card
         min-width="290"
         color="#424242"
@@ -126,4 +126,16 @@ export default {
 </script>
 <style lang="scss">
   @import './assets/variables.scss';
+  @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@200&family=Roboto:wght@300&display=swap');
+  @font-face {
+  font-family: 'db_adman_xlight';
+  src: url('~assets/fonts/db-adman-x-li-webfont.woff2') format('woff2'),
+       url('~assets/fonts/db-adman-x-li-webfont.woff') format('woff'),
+       url('~assets/fonts/db-adman-x.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+.time {
+font-family:  'Kanit', sans-serif;;
+}
 </style>
