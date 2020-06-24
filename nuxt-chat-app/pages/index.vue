@@ -53,7 +53,7 @@
         </v-card-text>
       </v-card>
      
-      <p align="center">Nuxt.JS Chat v0.1 <br> 
+      <p align="center">Nuxt.JS Chat v0.1.1 <br> 
       </p>
     </v-col>
   </v-row>
