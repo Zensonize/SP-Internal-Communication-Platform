@@ -6,7 +6,7 @@
       mobile-break-point="650"
       color="$accent"
     >
-      <v-list subheader>
+      <v-list subheader class="users">
         <v-subheader>Users in room</v-subheader>
 
         <v-list-item
@@ -86,3 +86,17 @@ export default {
   },
 };
 </script>
+<style lang="scss">
+  @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@200&family=Roboto:wght@300&display=swap');
+  @font-face {
+  font-family: 'db_adman_xlight';
+  src: url('~assets/fonts/db-adman-x-li-webfont.woff2') format('woff2'),
+       url('~assets/fonts/db-adman-x-li-webfont.woff') format('woff'),
+       url('~assets/fonts/db-adman-x.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+.users{
+  font-family:  'Kanit', sans-serif;
+}
+</style>

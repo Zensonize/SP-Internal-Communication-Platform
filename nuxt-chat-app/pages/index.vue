@@ -135,7 +135,7 @@ export default {
   font-weight: normal;
   font-style: normal;
 }
-.time {
-font-family:  'Kanit', sans-serif;;
+.time, h2,.mt-3,.room,.label {
+font-family:  'Kanit', sans-serif;
 }
 </style>
