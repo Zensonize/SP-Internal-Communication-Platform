@@ -4,7 +4,7 @@ const pool = new Pool({
     host: 'localhost',
     database: 'sp_test',
     password: 'password',
-    port: 5432,
+    port: 7000,
 })
 
 var url = require('url');
