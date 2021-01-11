@@ -35,7 +35,7 @@
               placeholder="Enter your password"
               aria-describedby="input-live-help password-feedback"
             ></b-form-input>
-            
+
             <b-form-input
               v-model="password2"
               :state="passwdState"
@@ -44,7 +44,6 @@
               placeholder="Confirm your password"
               aria-describedby="input-live-help password-feedback"
             ></b-form-input>
-             
           </div>
         </b-modal>
         <b-nav-item-dropdown right>
@@ -64,13 +63,19 @@
 import io from "socket.io-client";
 
 import Vue from "vue";
+import axios from "@nuxtjs/axios";
+
 export default Vue.extend({
   computed: {
     nameState() {
       return this.name.length > 2 ? true : false;
     },
     passwdState() {
-      return this.password === this.password2 && this.password != 0 && this.password2 != 0 ? true : false;
+      return this.password === this.password2 &&
+        this.password != 0 &&
+        this.password2 != 0
+        ? true
+        : false;
     }
   },
   data: function() {
@@ -84,22 +89,22 @@ export default Vue.extend({
   },
   methods: {
     handleOk() {
-      if(!this.name || !this.password || !this.password2 )
-      {
-        alert("Message Cannot empty!")
-        return
+      if (!this.name || !this.password || !this.password2) {
+        alert("Message Cannot empty!");
+        return;
       }
-      // Prevent modal from closing
       console.log(this.name);
 
-      this.socket.emit("user_regis", this.name,this.password)
-      
+      this.socket.emit("user_regis", this.name, this.password);
+      this.socket.on("regis_success", msg => {
+        alert(msg);
+        this.socket.disconnect();
+        location.reload();
+        return false;
+      });
       this.name = "";
       this.password = "";
       this.password2 = "";
-      this.socket.on("regis_success", (msg) => {
-        alert(msg)
-      })
     }
   },
   mounted: function() {}
