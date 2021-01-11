@@ -87,6 +87,7 @@ io.on("connection", (socket) => {
       password: userpassword,
     });
     console.log(`Username is ${Data.registername} Password is ${Data.password}`);
+    console.log(`Register Sucessfully!`)
     Data.save((err,result) => {
       if (err) throw err;
       io.emit("regis_success", "Register Success!")
@@ -115,6 +116,7 @@ io.on("connection", (socket) => {
 
   // Disconnect
   socket.on("disconnect", () => {
+    
     console.log(`${socket.username} has left the chat.`);
     io.emit("userLeft", socket.username);
     users.splice(users.indexOf(socket), 1);
