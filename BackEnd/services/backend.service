@@ -1,0 +1,12 @@
+[Unit]
+Description=Mongo Chat DB
+After=multi-user.target
+
+[Service]
+Type=idle
+ExecStart=/home/ubuntu/vue.chat/db/mongo_db.sh
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

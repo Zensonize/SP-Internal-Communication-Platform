@@ -1,0 +1,20 @@
+{
+  "name": "chat-app",
+  "version": "1.0.0",
+  "description": "Senior Project Must Finish!",
+  "main": "server.js",
+  "scripts": {
+    "dev": " nodemon server.js"
+  },
+  "dependencies": {
+    "express": "*",
+    "moment": "^2.29.1",
+    "mongoose": "^5.10.11",
+    "socket.io": "*"
+  },
+  "devDependencies": {
+    "nodemon": "*"
+  },
+  "author": "Sunat Praphanwong @ProtonFak3r",
+  "license": "ISC"
+}
