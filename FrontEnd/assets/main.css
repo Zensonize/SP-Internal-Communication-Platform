@@ -1,0 +1,137 @@
+/* Part of Main CSS */
+@font-face {
+    font-family: 'db_adman_xlight';
+    src: url('~assets/fonts/db-adman-x-li-webfont.woff2') format('woff2'),
+         url('~assets/fonts/db-adman-x-li-webfont.woff') format('woff'),
+         url('~assets/fonts/db-adman-x.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+
+}
+:root {
+    --color: #243746;
+    --color-primary: #158876;
+    --color-secondary: #0e2233;
+    --bg: #f3f5f4;
+    --bg-secondary: #fff;
+    --border-color: #ddd;
+  }
+  
+  .dark-mode {
+    --color: #ebf4f1;
+    --color-primary: #41b38a;
+    --color-secondary: #fdf9f3;
+    --bg: #091a28;
+    --bg-secondary: #071521;
+    --border-color: #0d2538;
+  }
+  .sepia-mode {
+    --color: #433422;
+    --color-secondary: #504231;
+    --bg: #f1e7d0;
+    --bg-secondary: #eae0c9;
+    --border-color: #ded0bf;
+  }
+  
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue','DB Adman X','Kanit', sans-serif,'Sriracha', cursive,'db_adman_xlight';
+    background-color: var(--bg);
+    color: var(--color);
+    transition: background-color 0.667s;
+  }
+  a {
+    color: var(--color-primary)
+  }
+/* Part of Main CSS */
+
+  .error-404,.error-500 {
+    font-family: 'Quicksand', 'Source Sans Pro', -apple-system, BlinkMacSystemFont,
+  'Segoe UI', Roboto, 'Helvetica Neue', Arial,'DB Lim X','Kanit', sans-serif,'Sriracha', cursive,'db_adman_xlight';
+    display: block;
+    /* font-weight: 300; */
+    font-size: 24px;
+    letter-spacing: 1px;
+    text-align: center; 
+    padding: 0;
+    margin: 0;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-50%);
+    /* display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 200px;  */
+  }
+
+/* Part of Index Vue */
+  .links {
+    padding-top: 10px;
+  }
+  .title {
+    font-family: 'Quicksand', 'Source Sans Pro', -apple-system, BlinkMacSystemFont,
+      'Segoe UI', Roboto, 'Helvetica Neue', Arial,'DB Lim X','Kanit', sans-serif,'Sriracha', cursive,'db_adman_xlight';
+    display: block;
+    font-weight: 300;
+    font-size: 80px;
+    /* color: #35495e; */
+    letter-spacing: 1px;
+  }
+  .container {
+    margin: 0 auto;
+    min-height: 80vh;
+    display: flex;
+    
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 20px;
+  }
+
+  .subtitle {
+    font-weight: 300;
+    font-size: 30px;
+    /* color: #526488; */
+    word-spacing: 3px;
+    padding-bottom: 10px;
+  }
+/* Part of Index Vue */
+
+  /* Part of Colormodepicker Vue */
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  ul li {
+    display: inline-block;
+    padding: 5px;
+  }
+  p {
+    margin: 0;
+    padding-top: 5px;
+  }
+  .feather {
+    position: relative;
+    top: 0px;
+    cursor: pointer;
+    padding: 7px;
+    background-color: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    margin: 0;
+    border-radius: 5px;
+    transition: all 0.1s ease;
+  }
+  .feather:hover {
+    top: -3px;
+  }
+  .feather.preferred {
+    border-color: var(--color-primary);
+    top: -3px;
+  }
+  .feather.selected {
+    color: var(--color-primary);
+  }
+  /* Part of Colormodepicker Vue */
+
+/* Part of chat */

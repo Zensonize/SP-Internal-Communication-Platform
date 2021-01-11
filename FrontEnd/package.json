@@ -1,77 +1,45 @@
 {
-  "name": "typescript-nextjs-starter",
-  "description": "A TypeScript starter for Next.js that includes all you need to build amazing projects",
+  "name": "nuxt-chat-app",
   "version": "1.0.0",
   "private": true,
-  "author": "João Pedro Schmitz <oi@joaopedro.cc> (joaopedro.cc)",
-  "license": "MIT",
-  "keywords": [
-    "nextjs",
-    "starter",
-    "typescript"
-  ],
   "scripts": {
-    "dev": "next -p 8080",
-    "build": "next build",
-    "start": "next start",
-    "type-check": "tsc",
-    "lint": "eslint --ignore-path .gitignore \"src/**/*.+(ts|js|tsx)\"",
-    "format": "prettier --ignore-path .gitignore \"src/**/*.+(ts|js|tsx)\" --write"
-  },
-  "husky": {
-    "hooks": {
-      "prepare-commit-msg": "exec < /dev/tty && git cz --hook || true",
-      "pre-commit": "lint-staged",
-      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
-    }
-  },
-  "lint-staged": {
-    "./src/**/*.{ts,js,jsx,tsx}": [
-      "yarn lint --fix",
-      "yarn format"
-    ]
+    "dev": "nuxt-ts",
+    "build": "nuxt-ts build",
+    "start": "nuxt-ts start",
+    "generate": "nuxt-ts generate",
+    "lint:js": "eslint --ext .js,.vue --ignore-path .gitignore .",
+    "lint": "npm run lint:js"
   },
   "dependencies": {
-    "@material-ui/core": "4.11.2",
-    "@material-ui/icons": "4.11.2",
-    "@material-ui/lab": "4.0.0-alpha.57",
-    "next": "10.0.3",
-    "react": "17.0.1",
-    "react-dom": "17.0.1",
-    "react-native-appearance": "0.3.4",
-    "react-native-elements": "3.0.1",
-    "sass": "1.32.0",
-    "socket.io": "3.0.4",
-    "socket.io-client": "3.0.4",
-    "styled-components": "5.2.1"
+    "bootstrap": "^4.5.2",
+    "bootstrap-vue": "^2.17.3",
+    "core-js": "^3.6.5",
+    "@jeremyhamm/vue-slider": "^0.2.0",
+    "moment": "^2.29.1",
+    "nuxt": "^2.14.6",
+    "@nuxtjs/pwa": "^3.0.2",
+    "@nuxtjs/svg": "^0.1.12",
+    "@nuxt/typescript-runtime": "^2.0.0",
+    "socket.io": "^3.0.5",
+    "vee-validate": "^3.4.5",
+    "vue-burger-menu": "^2.0.5",
+    "vue-digital-clock": "^2.0.0",
+    "vue-i18n": "^8.22.3",
+    "vue-material": "^1.0.0-beta-15",
+    "vue-sidebar-menu": "^4.7.4",
+    "vue-socket.io": "^3.0.10"
   },
   "devDependencies": {
-    "commitizen": "4.2.2",
-    "@commitlint/cli": "11.0.0",
-    "@commitlint/config-conventional": "11.0.0",
-    "cz-conventional-changelog": "3.3.0",
-    "eslint": "7.16.0",
-    "eslint-config-airbnb": "18.2.1",
-    "eslint-config-prettier": "7.1.0",
-    "eslint-import-resolver-typescript": "2.3.0",
-    "eslint-plugin-import": "2.22.1",
-    "eslint-plugin-jsx-a11y": "6.4.1",
-    "eslint-plugin-prettier": "3.3.0",
-    "eslint-plugin-react": "7.21.5",
-    "eslint-plugin-react-hooks": "4.2.0",
-    "husky": "4.3.6",
-    "lint-staged": "10.5.3",
-    "prettier": "2.2.1",
-    "typescript": "4.1.3",
-    "@typescript-eslint/eslint-plugin": "4.10.0",
-    "@typescript-eslint/parser": "4.10.0",
-    "@types/node": "14.14.14",
-    "@types/react": "17.0.0",
-    "@types/react-dom": "17.0.0"
-  },
-  "config": {
-    "commitizen": {
-      "path": "./node_modules/cz-conventional-changelog"
-    }
+    "babel-eslint": "^10.1.0",
+    "eslint": "^7.10.0",
+    "eslint-plugin-nuxt": "^1.0.0",
+    "node-sass": "^5.0.0",
+    "@nuxtjs/color-mode": "^2.0.2",
+    "@nuxtjs/eslint-config": "^3.1.0",
+    "@nuxtjs/eslint-config-typescript": "^3.0.0",
+    "@nuxtjs/eslint-module": "^2.0.0",
+    "@nuxt/types": "^2.14.6",
+    "@nuxt/typescript-build": "^2.0.3",
+    "sass-loader": "^10.1.0"
   }
 }
