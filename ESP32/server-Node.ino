@@ -1,7 +1,7 @@
 #include "painlessMesh.h"
 
-#define   MESH_PREFIX     "whateverYouLike"
-#define   MESH_PASSWORD   "somethingSneaky"
+#define   MESH_PREFIX     "IPHC"
+#define   MESH_PASSWORD   "ThisPasswordIsHidden"
 #define   MESH_PORT       5555
 
 Scheduler userScheduler; // to control your personal task
