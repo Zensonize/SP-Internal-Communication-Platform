@@ -94,6 +94,24 @@ io.on("connection", (socket) => {
     })
   });
 
+  socket.on("user_auth", (user_payload, password_payload) => {
+    userDataModel.find({
+      "registername" : user_payload,
+      "password" : password_payload
+    }, (err,result) => {
+      if (err) throw err
+      // console.log(result)
+      if(result.length === 0){
+        console.log("Data not found")
+        socket.emit("auth_fail", "Username or Password is wrong")
+      }
+      else {
+        console.log("Found user data", result)
+        socket.emit("auth_success", result)
+      }
+    })
+  })
+
   socket.on("msg", (msg) => {
     console.log(`${socket.username} said '${msg}'`);
 
