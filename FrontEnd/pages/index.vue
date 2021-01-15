@@ -4,7 +4,7 @@
     <div>
       <Logo />
       <h1 class="title">
-        MaChat based on Socket IO, NuxtTS
+        PrivaChat based on Socket IO, NuxtTS
       </h1>
       <div class="links">
         <a
@@ -21,7 +21,7 @@
           rel="noopener noreferrer"
           class="button--grey"
         >
-          Machat
+          Privachat
         </a>
       </div>
 
@@ -41,7 +41,7 @@ import VueSidebarMenu from 'vue-sidebar-menu'
 import 'vue-sidebar-menu/dist/vue-sidebar-menu.css'
 Vue.use(VueSidebarMenu)
 export default Vue.extend({
-  name: "MaChat",
+  name: "PrivaChat",
   components:
   {
     ColorModePicker,
@@ -49,30 +49,7 @@ export default Vue.extend({
   },
   data() {
             return {
-              title: "MaChat"
-                // menu: [
-                //     {
-                //         header: true,
-                //         title: 'Main Navigation',
-                //         hiddenOnCollapse: true
-                //     },
-                //     {
-                //         href: '/',
-                //         title: 'Dashboard',
-                //         icon: 'fa fa-user'
-                //     },
-                //     {
-                //         href: '/chat',
-                //         title: 'MaChat',
-                //         icon: 'fa fa-chart-area',
-                //         // child: [
-                //         //     {
-                //         //         href: '/charts/sublink',
-                //         //         title: 'Sub Link'
-                //         //     }
-                //         // ]
-                //     }
-                // ]
+              title: "PrivaChat"
             }
         },
         head(){

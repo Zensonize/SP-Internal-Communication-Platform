@@ -1,6 +1,6 @@
 <template>
-  <b-navbar toggleable="lg" type="dark" variant="info">
-    <b-navbar-brand href="/">MaChat</b-navbar-brand>
+  <b-navbar class="navbar" toggleable="lg" type="dark" variant="dark">
+    <b-navbar-brand href="/">PrivaChat</b-navbar-brand>
 
     <b-navbar-toggle target="nav-collapse"></b-navbar-toggle>
 
@@ -11,10 +11,39 @@
 
       <!-- Right aligned nav items -->
       <b-navbar-nav class="ml-auto">
+        <b-nav-item @click="modalLogin = !modalLogin">Login</b-nav-item>
+        <b-modal v-model="modalLogin" @ok="handlelogin">
+          <div class="d-block text-center">
+            <h2>Login to PrivaChat!</h2>
+          </div>
+          <div>
+            <b-form-input
+              v-model="name_auth"
+              :state="name_auth_State"
+              size="sm"
+              placeholder="Enter your username"
+            ></b-form-input>
+            <b-form-invalid-feedback id="username-feedback">
+              Field is required!
+            </b-form-invalid-feedback>
+            <b-form-input
+              v-model="password_auth"
+              :state="password_auth_State"
+              size="sm"
+              type="password"
+              placeholder="Enter your password"
+              aria-describedby="password-feedback"
+            ></b-form-input>
+            <b-form-invalid-feedback id="password-feedback">
+              Field is required!
+            </b-form-invalid-feedback>
+          </div>
+        </b-modal>
+
         <b-nav-item @click="modalShow = !modalShow">Register</b-nav-item>
         <b-modal v-model="modalShow" @ok="handleOk">
           <div class="d-block text-center">
-            <h2>Register to MaChat!</h2>
+            <h2>Register to PrivaChat!</h2>
           </div>
           <div>
             <b-form-input
@@ -51,7 +80,7 @@
           <template #button-content>
             <em>Options</em>
           </template>
-          <b-dropdown-item href="#">Profile</b-dropdown-item>
+          <b-dropdown-item href="#" disabled>Profile</b-dropdown-item>
           <b-dropdown-item href="#">Sign Out</b-dropdown-item>
         </b-nav-item-dropdown>
       </b-navbar-nav>
@@ -61,12 +90,21 @@
 
 <script>
 import io from "socket.io-client";
-
+import Vuex from "vuex";
 import Vue from "vue";
 import axios from "@nuxtjs/axios";
 
+Vue.use(Vuex);
+
 export default Vue.extend({
   computed: {
+    name_auth_State() {
+      return this.name_auth.length > 0 ? true : false;
+    },
+    password_auth_State() {
+      return this.password_auth.length > 0 ? true : false;
+    },
+
     nameState() {
       return this.name.length > 2 ? true : false;
     },
@@ -81,7 +119,10 @@ export default Vue.extend({
   data: function() {
     return {
       modalShow: false,
+      modalLogin: false,
       name: "",
+      name_auth: "",
+      password_auth: "",
       password: "",
       socket: io("http://192.168.1.43:3000"),
       password2: ""
@@ -90,7 +131,7 @@ export default Vue.extend({
   methods: {
     handleOk() {
       if (!this.name || !this.password || !this.password2) {
-        alert("Message Cannot empty!");
+        alert("This form Cannot empty!");
         return;
       }
       console.log(this.name);
@@ -105,6 +146,38 @@ export default Vue.extend({
       this.name = "";
       this.password = "";
       this.password2 = "";
+    },
+    handlelogin() {
+      if (!this.name_auth || !this.password_auth) {
+        alert("This form Cannot empty!");
+        return;
+      }
+      this.socket.emit("user_auth", this.name_auth, this.password_auth);
+      this.socket.on("auth_fail", payload => {
+        alert(payload);
+        this.password_auth = "";
+        this.name_auth = "";
+        this.socket.disconnect();
+        location.reload();
+        return;
+      });
+      this.socket.on("auth_success", payload => {
+        let user_result = payload.map(({ registername }) => registername);
+        let pass_result = payload.map(({ password }) => password);
+        if (
+          user_result == this.name_auth &&
+          pass_result == this.password_auth
+        ) {
+          this.socket.emit("newuser", user_result);
+          this.$router.push({
+            name: "chat",
+            params: { username: this.name_auth }
+          });
+          this.socket.disconnect();
+          this.password_auth = "";
+          this.name_auth = "";
+        }
+      });
     }
   },
   mounted: function() {}
@@ -115,5 +188,8 @@ export default Vue.extend({
 h2,
 .mt-2 {
   color: black;
+}
+.navbar {
+  color: #00376f;
 }
 </style>

@@ -35,12 +35,12 @@ export default Vue.extend({
     IconSystem,
     IconLight,
     IconDark,
-    IconSepia,
+    
     
   },
   data() {
     return {
-      colors: ["system", "light", "dark", "sepia"],
+      colors: ["system", "light", "dark"],
     };
   },
   methods: {

@@ -1,6 +1,5 @@
 <template>
   <div id="app" class="app">
-      
     <div class="header">
       <h1 class="Chatroom">Chatroom</h1>
       <p class="username">Username: {{ username }}</p>
@@ -28,7 +27,7 @@ created() {
   },
   },
   
-  metaInfo: { title: "Emergency Chat System V1.0" },
+  metaInfo: { title: "PrivaChat System V1.0" },
   // localhost:3000
 
   data: function() {
@@ -38,7 +37,7 @@ created() {
       messages: "",
       users: "",
       date: "",
-      title: "Machat"
+      title: "PrivaChat"
     };
   },
   head(){
@@ -87,10 +86,11 @@ created() {
   },
 
   mounted: function() {
-    this.username = prompt("What is your username?", "Anonymous");
-    if (!this.username) {
-      this.username = "Anonymous";
-    }
+    this.username = this.$route.params.username
+    // this.username = prompt("What is your username?", "Anonymous");
+    // if (!this.username) {
+    //   this.username = "Anonymous";
+    // }
     this.joinServer();
   },
 });
@@ -100,8 +100,6 @@ created() {
 
 
 body {
-  font-family: "Avenir", Helvetica, Arial, sans-serif;
-  color: #2c3e50;
   margin: 0;
   padding: 0;
 }
