@@ -3,7 +3,8 @@
     <div class="header">
       <h1 class="Chatroom">Chatroom</h1>
       <p class="username">Username: {{ username }}</p>
-      <p class="online">Online: {{ users.length }}</p>
+      <!-- <p class="online">Online: {{ users.length }}</p> -->
+      <p class="room">Room: {{ room }}</p>
     </div>
     <ChatRoom v-bind:messages="messages" v-on:sendMessage="this.sendMessage" />
   </div>
@@ -19,40 +20,42 @@ export default Vue.extend({
   name: "app",
   components: {
     ChatRoom,
-    Header,
+    Header
   },
   mounted: {
-created() {
-    window.addEventListener("keyup", this.keyPress);
+    created() {
+      window.addEventListener("keyup", this.keyPress);
+    }
   },
-  },
-  
-  metaInfo: { title: "PrivaChat System V1.0" },
-  // localhost:3000
 
+  metaInfo: { title: "PrivaChat System V1.0" },
+  // io IP default is localhost or 192.168.5.1
   data: function() {
     return {
       username: "",
       socket: io("http://192.168.1.43:3000"),
-      messages: "",
-      users: "",
+      messages: {},
+      messages2: {},
+      messages3: {},
+      users: [],
+      room: "",
       date: "",
       title: "PrivaChat"
     };
   },
-  head(){
-          return {
-            title: this.title,
-            meta: [
-          // hid is used as unique identifier. Do not use `vmid` for it as it will not work
-          {
-            hid: 'description',
-            name: 'description',
-            content: 'My custom description'
-          }
-        ]
-          }
-        },
+  head() {
+    return {
+      title: this.title,
+      meta: [
+        // hid is used as unique identifier. Do not use `vmid` for it as it will not work
+        {
+          hid: "description",
+          name: "description",
+          content: "My custom description"
+        }
+      ]
+    };
+  },
   methods: {
     keyPress(e) {
       if (e.key === "t") {
@@ -60,45 +63,62 @@ created() {
       }
     },
     joinServer: function() {
-      this.socket.on("loggedIn", (data) => {
-        this.messages = data.messages;
+      this.socket.on("loggedIn", data => {
+        if (this.room === "Firstroom") {
+          console.log(data.messages);
+          this.messages = data.messages;
+        } else if (this.room === "Secondroom") {
+          console.log(data.messages2);
+          this.messages = data.messages2;
+        } else if (this.room === "Thirdroom") {
+          console.log(data.messages3);
+          this.messages = data.messages3;
+        }
         this.users = data.users;
+        this.room = data.room;
         this.socket.emit("newuser", this.username);
       });
       this.listen();
     },
-
     listen: function() {
-      this.socket.on("userOnline", (user) => {
+      this.socket.on("userOnline", user => {
+        console.log(user)
         this.users.push(user);
       });
-      this.socket.on("userLeft", (user) => {
+      this.socket.on("userLeft", user => {
         this.users.splice(this.users.indexOf(user), 1);
       });
-      this.socket.on("msg", (message) => {
-        this.messages.push(message);
+      this.socket.on("msg", message => {
+        if (this.room === "Firstroom") {
+          this.messages.push(message);
+        } else if (this.room === "Secondroom") {
+          this.messages.push(message);
+        } else if (this.room === "Thirdroom") {
+          this.messages.push(message);
+        }
       });
     },
     sendMessage: function(message) {
-      this.socket.emit("msg", message);
+      this.socket.emit("msg", message, this.room);
       console.log("App get", message);
-    },
+    }
   },
-
   mounted: function() {
-    this.username = this.$route.params.username
+    this.username = this.$route.params.username;
+    this.room = this.$route.params.room;
     // this.username = prompt("What is your username?", "Anonymous");
-    // if (!this.username) {
-    //   this.username = "Anonymous";
-    // }
+    // If user null this can be happened if user refresh the app
+    if (!this.username) {
+      // Prevent user refresh to create null user apreared in the chat
+      this.$router.push({ name: "index" });
+      this.socket.disconnected();
+    }
     this.joinServer();
-  },
+  }
 });
 </script>
 
 <style lang="scss">
-
-
 body {
   margin: 0;
   padding: 0;

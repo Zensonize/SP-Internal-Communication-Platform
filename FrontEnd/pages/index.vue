@@ -16,12 +16,12 @@
           About
         </a>
         <a
-          href="/chat"
+          href="/info"
           target="_blank"
           rel="noopener noreferrer"
           class="button--grey"
         >
-          Privachat
+          What is Privachat?
         </a>
       </div>
 

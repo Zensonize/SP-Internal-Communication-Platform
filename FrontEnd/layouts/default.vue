@@ -1,28 +1,20 @@
 <template>
   <div>
-    <Navbar/>
+    <Navbar />
     <Nuxt />
   </div>
 </template>
 <script>
-import Navbar from '@/components/Navbar.vue'
-
-export default {
-  
-
-}
+import Vue from "vue";
+import Navbar from "@/components/Navbar.vue";
+import VueChatScroll from "vue-chat-scroll";
+Vue.use(VueChatScroll);
+export default {};
 </script>
 <style>
 html {
-  font-family:
-    'Source Sans Pro',
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    'Helvetica Neue',
-    Arial,
-    sans-serif;
+  font-family: "Source Sans Pro", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Roboto, "Helvetica Neue", Arial, sans-serif;
   font-size: 16px;
   word-spacing: 1px;
   -ms-text-size-adjust: 100%;
@@ -67,7 +59,6 @@ html {
   color: #fff;
   background-color: #35495e;
 }
-
 
 .title {
   margin-top: 15px;

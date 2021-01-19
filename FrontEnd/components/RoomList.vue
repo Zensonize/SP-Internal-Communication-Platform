@@ -1,29 +1,23 @@
 <template>
-  <div class="room-list">
-    <h4>Channels</h4>
-    <hr>
-    <b-list-group v-if="activeRoom">
-      <b-list-group-item v-for="room in rooms"
-                        :key="room.name"
-                        :active="activeRoom.id === room.id"
-                        href="#"
-                        @click="onChange(room)">
-        # {{ room.name }}
-      </b-list-group-item>
-    </b-list-group>
-  </div>
+  <b-row>
+    <b-col cols="12">
+      <h2>
+        Room List
+        <b-link href="/add-room">(Add Room)</b-link>
+      </h2>
+      <b-list-group>
+          <b-list-group-item v-for="room in rooms" :key="room.key" :to="{name: 'Chat', params: {nickname: nickname, roomid: room.key, roomname: room.roomName}}" action>
+              {{room.roomName}}
+          </b-list-group-item>
+      </b-list-group>
+    </b-col>
+  </b-row>
 </template>
 
 <script>
-import { mapState } from 'vuex'
 
 export default {
   name: 'RoomList',
-  computed: {
-    ...mapState([
-      'rooms',
-      'activeRoom'
-    ]),
-  }
+  
 }
 </script>

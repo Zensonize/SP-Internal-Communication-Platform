@@ -1,6 +1,6 @@
 <template>
   <div class="chat-window">
-    <div class="messages">
+    <div class="messages" v-chat-scroll>
       <div class="message" v-for="message in messages" v-bind:key="message._id">
         <div class="username">{{ message.username }}</div>
         <div class="message-text">{{ message.msg }}</div>
