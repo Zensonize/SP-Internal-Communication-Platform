@@ -78,6 +78,8 @@ emergency_room.find((err, result) => {
   msg_room_4 = result;
 });
 
+
+
 const userRegister = mongoose.Schema({
   registername: String,
   password: String,
@@ -185,7 +187,7 @@ io.on("connection", (socket) => {
 
         // console.log(err);
         msg_room_2.push(result);
-        io.emit("msg", result);
+        io.emit("msg_room_1", result);
       });
     } else if (present_room_id === "Secondroom") {
       console.log(`send msg from ${present_room_id}!`);
@@ -202,7 +204,7 @@ io.on("connection", (socket) => {
 
         // console.log(err);
         msg_room_3.push(result);
-        io.emit("msg", result);
+        io.emit("msg_room_2", result);
       });
     } else if (present_room_id === "Thirdroom") {
       let message = new emergency_room({
@@ -218,7 +220,7 @@ io.on("connection", (socket) => {
 
         // console.log(err);
         msg_room_4.push(result);
-        io.emit("msg", result);
+        io.emit("msg_room_3", result);
       });
     }
     // let message = new chatModel({
