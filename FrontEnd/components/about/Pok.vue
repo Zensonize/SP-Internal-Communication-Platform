@@ -7,6 +7,7 @@
       img-src="@/assets/imgs/pok.jpg"
       img-alt="Image"
       img-top
+      v-lazy-load
     >
      <b-card-sub-title class="mb-2"> aka ProtonFaker, SNP</b-card-sub-title>
       <b-card-text >

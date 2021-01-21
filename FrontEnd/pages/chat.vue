@@ -1,14 +1,18 @@
 <template>
   <div id="app" class="app">
     <div class="header">
-      <h1 class="Chatroom">Chatroom</h1>
-      <p class="username">Username: {{ username }}</p>
+      <h1 class="Chatroom">{{this.room_name}}</h1>
+      <p class="username">Logged in as: {{ username }}</p>
       <!-- <p class="online">Online: {{ users.length }}</p> -->
-      <p class="room">Room: {{ room }}</p>
+      <!-- <p class="room">Room: {{ room }}</p> -->
     </div>
-    <ChatRoom v-bind:messages="messages" v-on:sendMessage="this.sendMessage" />
+    <ChatRoom v-if="this.room === 'Firstroom'" v-bind:messages="messages" v-on:sendMessage="this.sendMessage" />
+    <ChatRoom v-if="this.room === 'Secondroom'" v-bind:messages="messages2" v-on:sendMessage="this.sendMessage" />
+    <ChatRoom v-if="this.room === 'Thirdroom'" v-bind:messages="messages3" v-on:sendMessage="this.sendMessage" />
   </div>
 </template>
+
+
 
 <script>
 import io from "socket.io-client";
@@ -39,10 +43,12 @@ export default Vue.extend({
       messages3: {},
       users: [],
       room: "",
+      room_name: "",
       date: "",
       title: "PrivaChat"
     };
   },
+ 
   head() {
     return {
       title: this.title,
@@ -57,6 +63,17 @@ export default Vue.extend({
     };
   },
   methods: {
+    check_room_name: function(){
+      if(this.room === "Firstroom"){
+        this.room_name = "General Room"
+      }
+      else if (this.room === "Secondroom"){
+        this.room_name = "Secondary Room"
+      }
+      else{
+        this.room_name = "Emergency Room"
+      }
+  },
     keyPress(e) {
       if (e.key === "t") {
         this.toggle();
@@ -65,14 +82,17 @@ export default Vue.extend({
     joinServer: function() {
       this.socket.on("loggedIn", data => {
         if (this.room === "Firstroom") {
+          this.room_name = "General Room"
           console.log(data.messages);
           this.messages = data.messages;
         } else if (this.room === "Secondroom") {
+          this.room_name = "Secondary Room"
           console.log(data.messages2);
-          this.messages = data.messages2;
+          this.messages2 = data.messages2;
         } else if (this.room === "Thirdroom") {
+          this.room_name = "Emergency Room"
           console.log(data.messages3);
-          this.messages = data.messages3;
+          this.messages3 = data.messages3;
         }
         this.users = data.users;
         this.room = data.room;
@@ -88,15 +108,15 @@ export default Vue.extend({
       this.socket.on("userLeft", user => {
         this.users.splice(this.users.indexOf(user), 1);
       });
-      this.socket.on("msg", message => {
-        if (this.room === "Firstroom") {
+      this.socket.on("msg_room_1", message => {
           this.messages.push(message);
-        } else if (this.room === "Secondroom") {
-          this.messages.push(message);
-        } else if (this.room === "Thirdroom") {
-          this.messages.push(message);
-        }
       });
+      this.socket.on("msg_room_2", message =>{
+        this.messages2.push(message);
+      })
+      this.socket.on("msg_room_3", message =>{
+        this.messages3.push(message);
+      })
     },
     sendMessage: function(message) {
       this.socket.emit("msg", message, this.room);

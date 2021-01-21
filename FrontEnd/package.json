@@ -20,6 +20,7 @@
     "@nuxtjs/proxy": "^2.1.0",
     "@nuxtjs/pwa": "^3.0.2",
     "@nuxtjs/svg": "^0.1.12",
+    "nuxt-lazy-load": "^1.2.4",
     "@nuxt/typescript-runtime": "^2.0.0",
     "socket.io": "^3.0.5",
     "vue-chat-scroll": "^1.4.0",

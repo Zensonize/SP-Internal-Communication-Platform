@@ -41,7 +41,8 @@ export default {
     "@nuxtjs/pwa",
     "@nuxtjs/svg",
     "@nuxtjs/axios",
-    "@nuxtjs/proxy"
+    "@nuxtjs/proxy",
+    'nuxt-lazy-load',
   ],
 
   // Build Configuration (https://go.nuxtjs.dev/config-build)

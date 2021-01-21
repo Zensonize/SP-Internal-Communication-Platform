@@ -41,7 +41,7 @@
               Field is required!
             </b-form-invalid-feedback>
             <b-form-select v-model="selected" :options="options"></b-form-select>
-            <div class="mt-3">Room Number: <strong>{{ selected }}</strong></div>
+            <div class="mt-3">Room selected: <strong>{{ selected }}</strong></div>
           </div>
         </b-modal>
         <!-- Register Form -->

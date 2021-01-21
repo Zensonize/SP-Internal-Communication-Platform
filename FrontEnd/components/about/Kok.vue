@@ -7,6 +7,7 @@
       img-alt="Image"
       img-top
       class="kok"
+      v-lazy-load
     >
      <b-card-sub-title class="mb-2">aka TonkokEZ, กกก</b-card-sub-title>
       <b-card-text >
