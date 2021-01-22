@@ -1,14 +1,14 @@
 <template>
   <div id="app" class="app">
     <div class="header">
-      <h1 class="Chatroom">{{this.room_name}}</h1>
-      <p class="username">Logged in as: {{ username }}</p>
+      <h1 class="Chatroom">{{this.room}}</h1>
+      <p class="username">Logged in as: {{ this.username }}</p>
       <!-- <p class="online">Online: {{ users.length }}</p> -->
       <!-- <p class="room">Room: {{ room }}</p> -->
     </div>
-    <ChatRoom v-if="this.room === 'Firstroom'" v-bind:messages="messages" v-on:sendMessage="this.sendMessage" />
-    <ChatRoom v-if="this.room === 'Secondroom'" v-bind:messages="messages2" v-on:sendMessage="this.sendMessage" />
-    <ChatRoom v-if="this.room === 'Thirdroom'" v-bind:messages="messages3" v-on:sendMessage="this.sendMessage" />
+    <ChatRoom v-bind:messages="messages" v-on:sendMessage="this.sendMessage" />
+    <!-- <ChatRoom v-if="this.room === 'Secondroom'" v-bind:messages="messages2" v-on:sendMessage="this.sendMessage" /> -->
+    <!-- <ChatRoom v-if="this.room === 'Thirdroom'" v-bind:messages="messages3" v-on:sendMessage="this.sendMessage" /> -->
   </div>
 </template>
 
@@ -18,13 +18,11 @@
 import io from "socket.io-client";
 import ChatRoom from "../components/ChatRoom";
 import Vue from "vue";
-import Header from "../components/Header";
 
 export default Vue.extend({
   name: "app",
   components: {
     ChatRoom,
-    Header
   },
   mounted: {
     created() {
@@ -63,17 +61,6 @@ export default Vue.extend({
     };
   },
   methods: {
-    check_room_name: function(){
-      if(this.room === "Firstroom"){
-        this.room_name = "General Room"
-      }
-      else if (this.room === "Secondroom"){
-        this.room_name = "Secondary Room"
-      }
-      else{
-        this.room_name = "Emergency Room"
-      }
-  },
     keyPress(e) {
       if (e.key === "t") {
         this.toggle();
@@ -81,19 +68,21 @@ export default Vue.extend({
     },
     joinServer: function() {
       this.socket.on("loggedIn", data => {
-        if (this.room === "Firstroom") {
-          this.room_name = "General Room"
-          console.log(data.messages);
-          this.messages = data.messages;
-        } else if (this.room === "Secondroom") {
-          this.room_name = "Secondary Room"
-          console.log(data.messages2);
-          this.messages2 = data.messages2;
-        } else if (this.room === "Thirdroom") {
-          this.room_name = "Emergency Room"
-          console.log(data.messages3);
-          this.messages3 = data.messages3;
-        }
+        console.log(data.messages)
+        this.messages = data.messages
+        // if (this.room === "Firstroom") {
+        //   this.room_name = "General Room"
+        //   console.log(data.messages);
+        //   this.messages = data.messages;
+        // } else if (this.room === "Secondroom") {
+        //   this.room_name = "Secondary Room"
+        //   console.log(data.messages2);
+        //   this.messages2 = data.messages2;
+        // } else if (this.room === "Thirdroom") {
+        //   this.room_name = "Emergency Room"
+        //   console.log(data.messages3);
+        //   this.messages3 = data.messages3;
+        // }
         this.users = data.users;
         this.room = data.room;
         this.socket.emit("newuser", this.username);
@@ -102,7 +91,7 @@ export default Vue.extend({
     },
     listen: function() {
       this.socket.on("userOnline", user => {
-        console.log(user)
+        console.log("user lists:",user)
         this.users.push(user);
       });
       this.socket.on("userLeft", user => {
@@ -119,7 +108,7 @@ export default Vue.extend({
       })
     },
     sendMessage: function(message) {
-      this.socket.emit("msg", message, this.room);
+      this.socket.emit("msg", message, this.room,this.username);
       console.log("App get", message);
     }
   },
@@ -131,7 +120,7 @@ export default Vue.extend({
     if (!this.username) {
       // Prevent user refresh to create null user apreared in the chat
       this.$router.push({ name: "index" });
-      this.socket.disconnected();
+      // this.socket.disconnected();
     }
     this.joinServer();
   }

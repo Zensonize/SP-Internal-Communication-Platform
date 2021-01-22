@@ -1,3 +1,4 @@
 {
-    "python.pythonPath": "C:\\Users\\Sunat\\anaconda3\\python.exe"
+    "python.pythonPath": "C:\\Users\\Sunat\\anaconda3\\python.exe",
+    "compile-hero.disable-compile-files-on-did-save-code": false
 }

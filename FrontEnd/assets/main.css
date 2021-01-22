@@ -136,3 +136,14 @@
   /* Part of Colormodepicker Vue */
 
 /* Part of chat */
+h2,
+.mt-2,
+.mt-3,
+.my-4,
+.modal-title,
+.b-modal {
+  color: black;
+}
+.navbar {
+  color: #00376f;
+}

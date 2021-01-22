@@ -7,22 +7,24 @@
         PrivaChat based on Socket IO, NuxtTS
       </h1>
       <div class="links">
-        <a
+        <b-button
           href="/about"
           target="_blank"
           rel="noopener noreferrer"
           class="button--green"
+          variant="outline-success"          
         >
           About
-        </a>
-        <a
+        </b-button>
+        <b-button
           href="/info"
           target="_blank"
           rel="noopener noreferrer"
           class="button--grey"
+          variant="outline-light" 
         >
           What is Privachat?
-        </a>
+        </b-button>
       </div>
 
       <ColorModePicker />
