@@ -64,7 +64,6 @@ void changedConnectionCallback() {
 }
 
 void nodeTimeAdjustedCallback(int32_t offset) {
-  Serial.printf("Adjusted time %u. Offset = %d\n", mesh.getNodeTime(),offset);
   JSONVar changeTime;
   changeTime["FLAG"] = "CHANGED_TIME";
   changeTime["TIME"] = String(mesh.getNodeTime());
