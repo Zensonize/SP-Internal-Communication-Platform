@@ -1,18 +1,16 @@
 <template>
   <div id="app" class="app">
     <div class="header">
-      <h1 class="Chatroom">{{this.room}}</h1>
+      <h1 class="Chatroom">{{ this.room }}</h1>
       <p class="username">Logged in as: {{ this.username }}</p>
       <!-- <p class="online">Online: {{ users.length }}</p> -->
       <!-- <p class="room">Room: {{ room }}</p> -->
     </div>
-    <ChatRoom v-bind:messages="messages" v-on:sendMessage="this.sendMessage" />
-    <!-- <ChatRoom v-if="this.room === 'Secondroom'" v-bind:messages="messages2" v-on:sendMessage="this.sendMessage" /> -->
-    <!-- <ChatRoom v-if="this.room === 'Thirdroom'" v-bind:messages="messages3" v-on:sendMessage="this.sendMessage" /> -->
+    <ChatRoom  v-bind:messages="messages" v-on:sendMessage="this.sendMessage" />
+    <!-- <ChatRoom v-else-if="this.room === this.room_lists[1]" v-bind:messages="messages" v-on:sendMessage="this.sendMessage" /> -->
+    <!-- <ChatRoom v-else-if="this.room === this.room_lists[2]" v-bind:messages="messages" v-on:sendMessage="this.sendMessage" /> -->
   </div>
 </template>
-
-
 
 <script>
 import io from "socket.io-client";
@@ -22,38 +20,39 @@ import Vue from "vue";
 export default Vue.extend({
   name: "app",
   components: {
-    ChatRoom,
+    ChatRoom
   },
   mounted: {
     created() {
       window.addEventListener("keyup", this.keyPress);
     }
   },
-
   metaInfo: { title: "PrivaChat System V1.0" },
   // io IP default is localhost or 192.168.5.1
   data: function() {
     return {
       username: "",
       socket: io("http://192.168.1.43:3000"),
-      messages: {},
-      messages2: {},
-      messages3: {},
+      messages: [],
+      messages2: [],
+      messages3: [],
+      messages4: [],
+      messages5: [],
       users: [],
       room: "",
-      room_name: "",
+      room_lists: [],
       date: "",
       title: "PrivaChat"
     };
   },
- 
+
   head() {
     return {
-      title: this.title,
+      title: "Room: " + this.room,
       meta: [
         // hid is used as unique identifier. Do not use `vmid` for it as it will not work
         {
-          hid: "description",
+          hid: "PrivaChat",
           name: "description",
           content: "My custom description"
         }
@@ -68,21 +67,10 @@ export default Vue.extend({
     },
     joinServer: function() {
       this.socket.on("loggedIn", data => {
-        console.log(data.messages)
-        this.messages = data.messages
-        // if (this.room === "Firstroom") {
-        //   this.room_name = "General Room"
-        //   console.log(data.messages);
-        //   this.messages = data.messages;
-        // } else if (this.room === "Secondroom") {
-        //   this.room_name = "Secondary Room"
-        //   console.log(data.messages2);
-        //   this.messages2 = data.messages2;
-        // } else if (this.room === "Thirdroom") {
-        //   this.room_name = "Emergency Room"
-        //   console.log(data.messages3);
-        //   this.messages3 = data.messages3;
-        // }
+        console.log(data);
+        this.messages = data.messages;
+        // this.messages2 = data.messages;
+        // this.messages3 = data.messages;
         this.users = data.users;
         this.room = data.room;
         this.socket.emit("newuser", this.username);
@@ -90,25 +78,25 @@ export default Vue.extend({
       this.listen();
     },
     listen: function() {
+      this.socket.on("list_rooms", (payload) => {
+        payload.map(({RoomID}) => RoomID).forEach((element) => {
+          this.room_lists.push(element)
+            console.log(this.room_lists)
+        });
+      })
       this.socket.on("userOnline", user => {
-        console.log("user lists:",user)
         this.users.push(user);
       });
       this.socket.on("userLeft", user => {
         this.users.splice(this.users.indexOf(user), 1);
       });
-      this.socket.on("msg_room_1", message => {
-          this.messages.push(message);
+      this.socket.on("msg_room", message => {
+        this.messages.push(message);
+      
       });
-      this.socket.on("msg_room_2", message =>{
-        this.messages2.push(message);
-      })
-      this.socket.on("msg_room_3", message =>{
-        this.messages3.push(message);
-      })
     },
     sendMessage: function(message) {
-      this.socket.emit("msg", message, this.room,this.username);
+      this.socket.emit("msg", message, this.room, this.username);
       console.log("App get", message);
     }
   },
