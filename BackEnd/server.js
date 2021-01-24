@@ -25,7 +25,8 @@ let messages = [];
 let msg_room_2 = [];
 let msg_room_3 = [];
 let msg_room_4 = [];
-let room_lists = [];
+var room_lists = [];
+var lists = [];
 var present_room_id = "";
 const moment = require("moment");
 const { error } = require("console");
@@ -61,25 +62,12 @@ var RoomModel = mongoose.Schema({
 });
 
 var room_list = mongoose.model("room_list", RoomModel);
-
-console.log(present_room_id)
-var custom_room = mongoose.model(present_room_id, chatschema);
-custom_room.find((err, result) => {
-  if (err) throw err;
-  msg_room_3 = result;
-});
-
-var chatModel = mongoose.model("chat", chatschema);
-chatModel.find((err, result) => {
-  if (err) throw err;
-  messages = result;
-});
-
-var general_room = mongoose.model("first", chatschema);
-general_room.find((err, result) => {
-  if (err) throw err;
-  msg_room_2 = result;
-  // console.log("msg from general room",messages2)
+room_list.find({}, { RoomID: 1, _id: 0 }, (err, result) => {
+  result.map(({RoomID}) => RoomID).forEach((element) => {
+    lists.push(element)
+  })
+  room_lists = result;
+  
 });
 
 const userRegister = mongoose.Schema({
@@ -97,13 +85,14 @@ io.on("connection", (socket) => {
   if (present_room_id) {
     console.log("connecting to:", present_room_id);
   }
+  socket.emit("loggedIn", {
+    users: users.map((s) => s.username),
+    messages: msg_room_2,
+    room: present_room_id,
+  });
 
-    socket.emit("loggedIn", {
-      users: users.map((s) => s.username),
-      messages: msg_room_3,
-      room: present_room_id,
-    });
-  
+  socket.emit("list_rooms", room_lists);
+
   socket.on("newuser", (username) => {
     console.log(`${username} has join at the chat.`);
 
@@ -179,7 +168,7 @@ io.on("connection", (socket) => {
   socket.on("user_auth", (user_payload, password_payload, room) => {
     present_room_id = room;
     console.log("User join to ", room);
-
+    
     userDataModel.find(
       {
         registername: user_payload,
@@ -187,7 +176,6 @@ io.on("connection", (socket) => {
       },
       (err, result) => {
         if (err) throw err;
-        // console.log(result)
         if (result.length === 0) {
           console.log("Data not found");
           socket.emit("auth_fail", "Username or Password is wrong");
@@ -197,75 +185,59 @@ io.on("connection", (socket) => {
         }
       }
     );
+
+    var custom_room = mongoose.model(present_room_id, chatschema);
+    custom_room.find((err, result) => {
+      if (err) throw err;
+      msg_room_2 = result
+    });
   });
 
   socket.on("msg", (msg, room, user) => {
-    present_room_id = room;
+    present_room_id = room
     console.log(`${present_room_id} active!`);
     console.log(`${socket.username} said '${msg}'`);
-
-    let message = mongoose.model(room, chatschema);
+    
+    let message = mongoose.model(present_room_id, chatschema);
     let save_msg = new message({
       username: user,
       msg: msg,
       date: new moment().format("DD/MM/YYYY HH:mm:ss"),
     });
-    save_msg.save((err, result) => {
-      if (err) throw err;
-      // console.log(messages);
-      console.log(result);
-      msg_room_3.push(result);
-      io.emit("msg_room_1", result);
-    });
-    // else if (present_room_id === "Secondroom") {
-    //   console.log(`send msg from ${present_room_id}!`);
-    //   let message = new private_room({
-    //     username: socket.username,
-    //     msg: msg,
-    //     date: new moment().format("DD/MM/YYYY HH:mm:ss"),
-    //   });
-    //   console.log("message is ", message);
-
-    //   message.save((err, result) => {
-    //     // console.log(err, result);
+    socket.join(room, () => {
+      save_msg.save((err, result) => {
+        if (err) throw err;
+        console.log(result);
+        msg_room_2.push(result);
+        io.to(room).emit("msg_room", result);
+      });
+    })
+    
+    // if (room === lists[0].toString()) {
+    //   save_msg.save((err, result) => {
     //     if (err) throw err;
-
-    //     // console.log(err);
-    //     msg_room_3.push(result);
-    //     io.emit("msg_room_2", result);
-    //   });
-    // } else if (present_room_id === "Thirdroom") {
-    //   let message = new emergency_room({
-    //     username: socket.username,
-    //     msg: msg,
-    //     date: new moment().format("DD/MM/YYYY HH:mm:ss"),
-    //   });
-    //   console.log("message is ", message);
-
-    //   message.save((err, result) => {
-    //     // console.log(err, result);
-    //     if (err) throw err;
-
-    //     // console.log(err);
-    //     msg_room_4.push(result);
-    //     io.emit("msg_room_3", result);
+    //     console.log(result);
+    //     msg_room_2.push(result);
+    //     io.emit("msg_room_1", result);
     //   });
     // }
-    // let message = new chatModel({
-    //   username: socket.username,
-    //   msg: msg,
-    //   date: new moment().format("DD/MM/YYYY HH:mm:ss"),
-    // });
-    // console.log("message is ", message);
-
-    // message.save((err, result) => {
-    //   // console.log(err, result);
-    //   if (err) throw err;
-
-    //   // console.log(err);
-    //   messages.push(result);
-    //   io.emit("msg", result);
-    // });
+    // else if (room === lists[1].toString()) {
+    //   save_msg.save((err, result) => {
+    //     if (err) throw err;
+    //     console.log(result);
+    //     msg_room_2.push(result);
+    //     io.emit("msg_room_2", result);
+    //   });
+    // }
+    // else if(room === lists[2].toString()) {
+    //   save_msg.save((err, result) => {
+    //     if (err) throw err;
+    //     console.log(result);
+    //     msg_room_2.push(result);
+    //     io.emit("msg_room_3", result);
+    //   });
+    // }   
+    return (present_room_id = room);
   });
 
   // Disconnect
