@@ -78,7 +78,16 @@ void handleSerialInput(String inData){
   JSONVar dataObject = JSON.parse(inDataArr);
   dataObject["sendTime"] = String(mesh.getNodeTime());
   int to_int = (int) dataObject["TO"];
-  mesh.sendSingle((uint32_t) to_int, JSON.stringify(dataObject));
+  bool success = mesh.sendSingle((uint32_t) to_int, JSON.stringify(dataObject));
+  JSONVar sentSuccess;
+  sentSuccess["READY"] = "READY";
+  if(success){
+    sentSuccess["SUCCESS"] = true;
+  }
+  else {
+    sentSuccess["SUCCESS"] = false;
+  }
+  Serial.println(JSON.stringify(sentSuccess));
 }
 
 void setup() {
