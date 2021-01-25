@@ -9,25 +9,26 @@ Scheduler userScheduler; // to control your personal task
 painlessMesh  mesh;
 
 // User stub
-void sendMessage() ; // Prototype so PlatformIO doesn't complain
-void sendFreeMem() ; // Prototype so PlatformIO doesn't complain
+// void sendMessage() ; // Prototype so PlatformIO doesn't complain
+// void sendFreeMem() ; // Prototype so PlatformIO doesn't complain
 
-Task taskSendMessage( TASK_SECOND * 5 , TASK_FOREVER, &sendMessage );
-void sendMessage() {
-  JSONVar msg;
-  msg["FLAG"] = "DATA";
-  msg["DATA"] = "Testmessage";
-  msg["sendTime"] = String(mesh.getNodeTime());
-  mesh.sendBroadcast(JSON.stringify(msg));
-}
+// Task taskSendMessage( TASK_SECOND * 5 , TASK_FOREVER, &sendMessage );
+// void sendMessage() {
+//   JSONVar msg;
+//   msg["FLAG"] = "DATA";
+//   msg["DATA"] = "Testmessage";
+//   msg["sendTime"] = String(mesh.getNodeTime());
+//   mesh.sendBroadcast(JSON.stringify(msg));
+// }
 
-Task taskSendFreeMem( TASK_SECOND * 10, TASK_FOREVER, &sendFreeMem);
-void sendFreeMem() {
-  JSONVar freeMem;
-  freeMem["FLAG"] = "MEM";
-  freeMem["MEM"] = String(ESP.getFreeHeap());
-  Serial.println(JSON.stringify(freeMem));
-}
+// Task taskSendFreeMem( TASK_SECOND * 60, TASK_FOREVER, &sendFreeMem);
+// void sendFreeMem() {
+//   JSONVar freeMem;
+//   freeMem["FLAG"] = "MEM";
+//   freeMem["MEM"] = String(ESP.getFreeHeap());
+//   freeMem["BCAST"] = "TRUE";
+//   Serial.println(JSON.stringify(freeMem));
+// }
 
 // Needed for painless library
 void receivedCallback( uint32_t from, String &msg ) {
@@ -64,16 +65,26 @@ void changedConnectionCallback() {
 }
 
 void nodeTimeAdjustedCallback(int32_t offset) {
-  JSONVar changeTime;
-  changeTime["FLAG"] = "CHANGED_TIME";
-  changeTime["TIME"] = String(mesh.getNodeTime());
+  // JSONVar changeTime;
+  // changeTime["FLAG"] = "CHANGED_TIME";
+  // changeTime["TIME"] = String(mesh.getNodeTime());
 
-  Serial.println(JSON.stringify(changeTime));
+  // Serial.println(JSON.stringify(changeTime));
+}
+
+void handleSerialInput(String inData){
+  char inDataArr[1400];
+  inData.toCharArray(inDataArr,1400);
+  JSONVar dataObject = JSON.parse(inDataArr);
+  dataObject["sendTime"] = String(mesh.getNodeTime());
+  int to_int = (int) dataObject["TO"];
+  mesh.sendSingle((uint32_t) to_int, JSON.stringify(dataObject));
 }
 
 void setup() {
 
   Serial.begin(115200);
+  Serial.setRxBufferSize(1400);
 
 //mesh.setDebugMsgTypes( ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE ); // all types on
   mesh.setDebugMsgTypes( ERROR | STARTUP );  // set before init() so that you can see startup messages
@@ -84,13 +95,17 @@ void setup() {
   mesh.onChangedConnections(&changedConnectionCallback);
   mesh.onNodeTimeAdjusted(&nodeTimeAdjustedCallback);
 
-  userScheduler.addTask( taskSendMessage );
-  userScheduler.addTask( taskSendFreeMem );
-  taskSendFreeMem.enable();
-  taskSendMessage.enable();
+  // userScheduler.addTask( taskSendMessage );
+  // userScheduler.addTask( taskSendFreeMem );
+  // taskSendFreeMem.enable();
+  // taskSendMessage.enable();
 }
 
 void loop() {
   // it will run the user scheduler as well
   mesh.update();
+  if (Serial.available() > 0){
+    String inData = Serial.readString();
+    handleSerialInput(inData);
+  }
 }
