@@ -23,8 +23,6 @@ var mongoose = require("mongoose");
 let users = [];
 let messages = [];
 let msg_room_2 = [];
-let msg_room_3 = [];
-let msg_room_4 = [];
 var room_lists = [];
 var lists = [];
 var present_room_id = "";
@@ -125,7 +123,9 @@ io.on("connection", (socket) => {
     console.log(data);
     let new_room = mongoose.model(data, chatschema);
     let data_room = new new_room({
-      RoomID: "",
+      username: "Admin",
+      msg: `Welcome to ${data}`,
+      date: new moment().format("DD/MM/YYYY HH:mm:ss"),
     });
     let room = new room_list({
       RoomID: data,
@@ -213,30 +213,6 @@ io.on("connection", (socket) => {
       });
     })
     
-    // if (room === lists[0].toString()) {
-    //   save_msg.save((err, result) => {
-    //     if (err) throw err;
-    //     console.log(result);
-    //     msg_room_2.push(result);
-    //     io.emit("msg_room_1", result);
-    //   });
-    // }
-    // else if (room === lists[1].toString()) {
-    //   save_msg.save((err, result) => {
-    //     if (err) throw err;
-    //     console.log(result);
-    //     msg_room_2.push(result);
-    //     io.emit("msg_room_2", result);
-    //   });
-    // }
-    // else if(room === lists[2].toString()) {
-    //   save_msg.save((err, result) => {
-    //     if (err) throw err;
-    //     console.log(result);
-    //     msg_room_2.push(result);
-    //     io.emit("msg_room_3", result);
-    //   });
-    // }   
     return (present_room_id = room);
   });
 
