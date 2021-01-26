@@ -34,16 +34,16 @@ painlessMesh  mesh;
 void receivedCallback( uint32_t from, String &msg ) {
   JSONVar recv = JSON.parse(msg.c_str());
   recv["recvTime"] = String(mesh.getNodeTime());
-  recv["FROM"] = String(from);
+  recv["FROM"] =  String(from);
   Serial.println(JSON.stringify(recv));
 }
 
 void newConnectionCallback(uint32_t nodeId) {
-  JSONVar newConn;
-  newConn["FLAG"] = "NEW_CONNECTION";
-  newConn["nodeID"] = String(nodeId);
+  // JSONVar newConn;
+  // newConn["FLAG"] = "NEW_CONNECTION";
+  // newConn["nodeID"] = String(nodeId);
 
-  Serial.println(JSON.stringify(newConn));
+  // Serial.println(JSON.stringify(newConn));
 }
 
 void changedConnectionCallback() {
@@ -77,17 +77,35 @@ void handleSerialInput(String inData){
   inData.toCharArray(inDataArr,1400);
   JSONVar dataObject = JSON.parse(inDataArr);
   dataObject["sendTime"] = String(mesh.getNodeTime());
-  int to_int = (int) dataObject["TO"];
-  bool success = mesh.sendSingle((uint32_t) to_int, JSON.stringify(dataObject));
-  JSONVar sentSuccess;
-  sentSuccess["READY"] = "READY";
-  if(success){
+
+  String flag = (const char*) dataObject["FLAG"];
+  if ( flag.equals("ECHO")) {
+    Serial.print("broadcasting Echo");
+    Serial.println(JSON.stringify(dataObject));
+    mesh.sendBroadcast(JSON.stringify(dataObject));
+    JSONVar sentSuccess;
+    sentSuccess["FLAG"] = "READY";
     sentSuccess["SUCCESS"] = true;
+    Serial.println(JSON.stringify(sentSuccess));
   }
   else {
-    sentSuccess["SUCCESS"] = false;
+    String to = (const char*) dataObject["TO"];
+    int to_int = to.toInt();
+    uint32_t to_uint = (uint32_t) to_int;
+    Serial.printf("sending to int %d uint", to_int);
+    Serial.println(to_uint);
+    bool success = mesh.sendSingle(to_uint, JSON.stringify(dataObject));
+    JSONVar sentSuccess;
+    sentSuccess["FLAG"] = "READY";
+    if(success){
+      sentSuccess["SUCCESS"] = true;
+    }
+    else {
+      sentSuccess["SUCCESS"] = false;
+    }
+    Serial.println(JSON.stringify(sentSuccess));
   }
-  Serial.println(JSON.stringify(sentSuccess));
+  
 }
 
 void setup() {
