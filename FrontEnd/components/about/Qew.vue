@@ -1,12 +1,13 @@
 <template>
   <div>
     <b-card
-    header="IOT Developer"
+    header="Documentary, Driver"
       title="Qew"
       img-src="@/assets/imgs/qew.jpg"
       img-alt="Image"
       img-top
       class="qew"
+      v-lazy-load
     >
      <b-card-sub-title class="mb-2">aka QewLegend</b-card-sub-title>
       <b-card-text >

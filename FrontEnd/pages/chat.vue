@@ -7,8 +7,6 @@
       <!-- <p class="room">Room: {{ room }}</p> -->
     </div>
     <ChatRoom  v-bind:messages="messages" v-on:sendMessage="this.sendMessage" />
-    <!-- <ChatRoom v-else-if="this.room === this.room_lists[1]" v-bind:messages="messages" v-on:sendMessage="this.sendMessage" /> -->
-    <!-- <ChatRoom v-else-if="this.room === this.room_lists[2]" v-bind:messages="messages" v-on:sendMessage="this.sendMessage" /> -->
   </div>
 </template>
 
@@ -69,8 +67,6 @@ export default Vue.extend({
       this.socket.on("loggedIn", data => {
         console.log(data);
         this.messages = data.messages;
-        // this.messages2 = data.messages;
-        // this.messages3 = data.messages;
         this.users = data.users;
         this.room = data.room;
         this.socket.emit("newuser", this.username);
@@ -103,7 +99,6 @@ export default Vue.extend({
   mounted: function() {
     this.username = this.$route.params.username;
     this.room = this.$route.params.room;
-    // this.username = prompt("What is your username?", "Anonymous");
     // If user null this can be happened if user refresh the app
     if (!this.username) {
       // Prevent user refresh to create null user apreared in the chat

@@ -130,9 +130,7 @@
             </b-container>
           </b-modal>
           <b-dropdown-item v-b-modal.modal-1>Change-logs</b-dropdown-item>
-          <b-modal id="modal-1" title="BootstrapVue">
-            <p class="my-4">Not Avaliable now!</p>
-          </b-modal>
+          <changelog />
           <b-dropdown-item href="#" @click="logout = !logout"
             >Sign Out</b-dropdown-item
           >
@@ -146,10 +144,13 @@
 import io from "socket.io-client";
 import Vuex from "vuex";
 import Vue from "vue";
-
+import Changelog from "@/components/navbar/Changelog";
 Vue.use(Vuex);
 
 export default Vue.extend({
+  components: {
+    Changelog
+  },
   computed: {
     name_auth_State() {
       return this.name_auth.length > 0 ? true : false;
@@ -201,21 +202,21 @@ export default Vue.extend({
       /** Room **/
       socket: io("http://192.168.1.43:3000"), // this IP can be changeable
       selected: null,
-      options: [
-        { value: null, text: "Click refresh to select chat room" },
-      ]
+      options: [{ value: null, text: "Click refresh to select chat room" }]
     };
   },
   methods: {
-    getroom_list(){
-      this.socket.emit("get_room_list","User_request")
-      this.socket.on("room_lists_result", (payload) => {
-        console.log("Get Lists")
-        payload.map(({RoomID}) => RoomID).forEach((element) => {
-          this.options.push(element)
-            console.log(element)
-        });
-      })
+    getroom_list() {
+      this.socket.emit("get_room_list", "User_request");
+      this.socket.on("room_lists_result", payload => {
+        console.log("Get Lists");
+        payload
+          .map(({ RoomID }) => RoomID)
+          .forEach(element => {
+            this.options.push(element);
+            console.log(element);
+          });
+      });
     },
     // Get room list from Backend
     get_duplicate_name() {
@@ -298,5 +299,3 @@ export default Vue.extend({
   }
 });
 </script>
-
-<style></style>

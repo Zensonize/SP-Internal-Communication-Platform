@@ -1,7 +1,7 @@
 <template>
   <div>
     <b-card
-    header="Systems Engineer"
+    header="Systems Engineer, IOT Developer"
       title="Kok"
       img-src="@/assets/imgs/kok.jpg"
       img-alt="Image"

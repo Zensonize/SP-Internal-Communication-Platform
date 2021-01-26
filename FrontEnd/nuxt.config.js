@@ -1,5 +1,3 @@
-import { static } from "express";
-
 export default {
   target: 'static',
   server: {
@@ -30,7 +28,8 @@ export default {
   buildModules: [
     // https://go.nuxtjs.dev/typescript
     "@nuxt/typescript-build",
-    "@nuxtjs/color-mode"
+    "@nuxtjs/color-mode",
+    "nuxt-compress"
   ],
 
   // Modules (https://go.nuxtjs.dev/config-modules)
@@ -40,11 +39,31 @@ export default {
     // https://go.nuxtjs.dev/pwa
     "@nuxtjs/pwa",
     "@nuxtjs/svg",
-    "@nuxtjs/axios",
     "@nuxtjs/proxy",
     'nuxt-lazy-load',
+    [
+      'nuxt-netlify-http2-server-push',
+      {
+        // Specify relative path to the dist directory and its content type
+        resources: [
+          { path: '**/*.js', as: 'script' },
+          { path: '**/*.jpg', as: 'image' },
+          { path: '**/*.png', as: 'image' },
+          { path: '**/*.woff2', as: 'font', type: 'font/woff2', crossorigin: 'anonymous' },
+          { path: '**/*.woff', as: 'font', type: 'font/woff', crossorigin: 'anonymous' },
+          { path: '**/*.ttf', as: 'font', type: 'font/ttf', crossorigin: 'anonymous' },
+        ]
+      }
+    ]
   ],
-
+  "nuxt-compress": {
+    gzip: {
+      cache: true
+    },
+    brotli: {
+      threshold: 10240
+    }
+  },
   // Build Configuration (https://go.nuxtjs.dev/config-build)
   build: {},
   colorMode: {
@@ -65,22 +84,6 @@ export default {
     },{
       src:"./static/icon.png",
       size:"128x128",
-      type:"image/png"
-    },{
-      src:"./static/icon.png",
-      size:"152x152",
-      type:"image/png"
-    },{
-      src:"./static/icon.png",
-      size:"180x180",
-      type:"image/png"
-    },{
-      src:"./static/icon.png",
-      size:"192x192",
-      type:"image/png"
-    },{
-      src:"./static/icon.png",
-      size:"256x256",
       type:"image/png"
     }
   ],
@@ -108,26 +111,10 @@ export default {
     lang: "en",
     display: "standalone"
   },
-  axios: {
-    baseURL: "http://0.0.0.0:8000",
-    proxy: true,
-    Headers: {
-      common: {
-        Accept: "application/json, text/plain, */*"
-      },
-      get: {},
-      post: {}
+  
+  render:{
+    http2: {
+      push: true, pushAssets: null
     }
   },
-  publicRuntimeConfig: {
-    axios: {
-      browserBaseURL: process.env.BROWSER_BASE_URL
-    }
-  },
-
-  privateRuntimeConfig: {
-    axios: {
-      baseURL: process.env.BASE_URL
-    }
-  }
 };
