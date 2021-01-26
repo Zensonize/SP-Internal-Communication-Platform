@@ -64,6 +64,9 @@ let bcastServerRoutine = setInterval(bcastServer,10000);
 const handler = {
     'ECHO': function(data) {
         if (data.FROM in SERVER_LIST){
+            if (SERVER_LIST[data.FROM].SERVER_STATUS === 'OFFLINE'){
+                console.log('Server', data.FROM, 'back online');
+            }
             SERVER_LIST[data.FROM].SERVER_STATUS = 'ONLINE' 
         }
         else {
@@ -105,14 +108,11 @@ const handler = {
         NODE_LIST = data.NODE_LIST;
         TOPOLOGY = data.TOPOLOGY;
 
-        // for (const [i, msg] of SERVER_LIST.entries()) {
-        //     if(!NODE_LIST.includes(server.SERVER_ID)) {
-        //         SERVER_LIST[i].SERVER_STATUS = 'OFFLINE';
-        //     }
-        //     else if (server.SERVER_STATUS === 'OFFLINE') {
-        //         SERVER_LIST[i].SERVER_STATUS = 'ONLINE'
-        //     }
-        // }
+        Object.keys(SERVER_LIST).forEach((key, index) => {
+            if(!NODE_LIST.includes(key)){
+                SERVER_LIST[key].SERVER_STATUS = 'OFFLINE';
+            }
+        });
     }
 }
 
