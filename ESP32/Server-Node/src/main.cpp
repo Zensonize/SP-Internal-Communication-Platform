@@ -32,6 +32,9 @@ painlessMesh  mesh;
 
 // Needed for painless library
 void receivedCallback( uint32_t from, String &msg ) {
+  // Serial.print("_");
+  // Serial.print(from);
+  // Serial.println("_");
   JSONVar recv = JSON.parse(msg.c_str());
   recv["recvTime"] = String(mesh.getNodeTime());
   recv["FROM"] =  String(from);
@@ -80,8 +83,8 @@ void handleSerialInput(String inData){
 
   String flag = (const char*) dataObject["FLAG"];
   if ( flag.equals("ECHO")) {
-    Serial.print("broadcasting Echo");
-    Serial.println(JSON.stringify(dataObject));
+    // Serial.print("broadcasting Echo");
+    // Serial.println(JSON.stringify(dataObject));
     mesh.sendBroadcast(JSON.stringify(dataObject));
     JSONVar sentSuccess;
     sentSuccess["FLAG"] = "READY";
@@ -89,12 +92,15 @@ void handleSerialInput(String inData){
     Serial.println(JSON.stringify(sentSuccess));
   }
   else {
-    String to = (const char*) dataObject["TO"];
-    int to_int = to.toInt();
-    uint32_t to_uint = (uint32_t) to_int;
-    Serial.printf("sending to int %d uint", to_int);
-    Serial.println(to_uint);
-    bool success = mesh.sendSingle(to_uint, JSON.stringify(dataObject));
+    // String to = (const char*) dataObject["TO"];
+    // int to_int = to.toInt();
+    int toA_int = (int) dataObject["TOA"];
+    int toB_int = (int) dataObject["TOB"];
+    uint32_t toA_uint = (uint32_t) toA_int;
+    uint32_t toB_uint = (uint32_t) toB_int;
+    uint32_t to = (toA_uint * 100000) + toB_uint;
+
+    bool success = mesh.sendSingle(to, JSON.stringify(dataObject));
     JSONVar sentSuccess;
     sentSuccess["FLAG"] = "READY";
     if(success){
@@ -110,7 +116,7 @@ void handleSerialInput(String inData){
 
 void setup() {
 
-  Serial.begin(115200);
+  Serial.begin(921600);
   Serial.setRxBufferSize(1400);
 
 //mesh.setDebugMsgTypes( ERROR | MESH_STATUS | CONNECTION | SYNC | COMMUNICATION | GENERAL | MSG_TYPES | REMOTE ); // all types on

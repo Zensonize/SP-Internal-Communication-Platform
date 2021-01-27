@@ -1,7 +1,10 @@
 //create web server interface for the web
 var http = require('http');
 var express = require('express');
+const bodyParser = require('body-parser');
+
 var app = express();
+app.use(express.json());
 
 var server = http.createServer(app);
 server.listen(5000);
@@ -19,8 +22,7 @@ server.listen(5000);
 //listen to serial port
 var SerialPort = require('serialport');
 const ReadLine = require('@serialport/parser-readline');
-const { time } = require('console');
-const PORT = new SerialPort('/dev/cu.usbserial-1', {baudRate: 115200});
+const PORT = new SerialPort('/dev/cu.usbserial-0001', {baudRate: 921600});
 const parser = PORT.pipe(new ReadLine({delimiter: "\n"}));
 
 app.get('/', function(req,res) {
@@ -29,7 +31,16 @@ app.get('/', function(req,res) {
 
 app.post('/chat', function(req, res) {
     var data = req.body;
+    console.log('frontend received', data)
+    res.sendStatus(200);
     //test accepting chat event
+    sendData(data)
+})
+
+app.post('/longChat', function(req, res) {
+    var data = req.body;
+    //test accepting chat event
+    sendData(data)
 })
 
 PORT.on('open', () => {
@@ -59,7 +70,7 @@ let SENT_BUFF = []
 let RECV_BUFF = {};
 let isFree = true;
 let timeoutRoutine = null;
-let bcastServerRoutine = setInterval(bcastServer,10000);
+let bcastServerRoutine = setInterval(bcastServer,90000);
 
 const handler = {
     'ECHO': function(data) {
@@ -74,6 +85,7 @@ const handler = {
             SERVER_LIST[data.FROM].SERVER_NAME = data.SERVER_NAME;
             SERVER_LIST[data.FROM].SERVER_STATUS = 'ONLINE';
             console.log('added new server', SERVER_LIST);
+            RECV_BUFF[data.FROM] = {};
         }
     },
     'READY': function(data) {
@@ -91,18 +103,18 @@ const handler = {
     },
     'ACK': function(data) {
         for (const [i, msg] of SENT_BUFF.entries()) {
-            if (msg.ACK.ACK_MSG_ID == msg.msg.MSG_ID) {
-                if (msg.ACK.ACK_FRAG_ID == -1){
-                    SENT_BUFF.splice(msg, 1);
+            if (data.ACK_MSG_ID == msg.msg.MSG_ID) {
+                if (data.ACK_FRAG_ID == -1){
+                    SENT_BUFF.splice(i, 1);
                     break;
                 }
-                else if (msg.ACK.ACK_FRAG_ID == msg.msg.FRAG_ID) {
-                    SENT_BUFF.splice(msg, 1);
+                else if (data.ACK_FRAG_ID == msg.msg.FRAG_ID) {
+                    SENT_BUFF.splice(i, 1);
                     break;
                 }
             }
         }
-        console.log('ACK', msg.ACK.ACK_MSG_ID, msg.ACK.ACK_FRAG_ID)
+        console.log('ACK', data.ACK_MSG_ID,data.ACK_FRAG_ID)
     },
     'CHANGED_CONNECTION': function(data) {
         NODE_LIST = data.NODE_LIST;
@@ -113,6 +125,42 @@ const handler = {
                 SERVER_LIST[key].SERVER_STATUS = 'OFFLINE';
             }
         });
+        bcastServer()
+    },
+    'DATA': function(data) {
+        if (!data.FRAG) {
+            sendACK(data.FROM, data.MSG_ID, -1);
+            console.log('received data', data);
+        }
+        else {
+            sendACK(data.FROM, data.MSG_ID, data.FRAG_ID);
+            if (data.MSG_ID in RECV_BUFF[data.FROM]){
+                RECV_BUFF[data.FROM][data.MSG_ID].push(data);
+                if (RECV_BUFF[data.FROM][data.MSG_ID].length == data.FRAG_LEN) {
+                    dataFull = {
+                        'MSG_ID': data.MSG_ID,
+                        'FLAG': msg.FLAG,
+                        'FRAG': msg.FRAG,
+                        'FRAG_LEN': msg.FRAG_LEN,
+                        'DATA': "",
+                    }
+                    for (index = 0; index < data.FRAG_LEN; index++){
+                        for (const [i, frag] of RECV_BUFF[data.FROM][data.MSG_ID].entries()) {
+                            if (frag.FRAG_ID == index) {
+                                dataFull.DATA = dataFull.DATA + frag.DATA;
+                                break;
+                            }
+                        }
+                    }
+                    console.log('received fragmentedData', dataFull);
+                    delete RECV_BUFF[data.FROM][data.MSG_ID];
+                }
+            }
+            else {
+                RECV_BUFF[data.FROM][data.MSG_ID] = [];
+                RECV_BUFF[data.FROM][data.MSG_ID].push(data);
+            }
+        }
     }
 }
 
@@ -122,13 +170,14 @@ function sendACK(to, ackMsgId, ackFragId) {
         'msg': {
             'MSG_ID': MSG_ID++,
             'FLAG': 'ACK',
-            'ACK': {
-                'ACK_MSG_ID': ackMsgId,
-                'ACK_FRAG_ID': ackFragId
-            },
-            'TO': to
+            'ACK_MSG_ID': ackMsgId,
+            'ACK_FRAG_ID': ackFragId
         }
     }
+    var lenA = to.length - 5;
+    msg.msg.TOA = parseInt(to.slice(0,lenA));
+    msg.msg.TOB = parseInt(to.slice(-5));
+
     //insert as the first priority to response
     if (!TO_SEND_BUFF.length) {
         TO_SEND_BUFF.push(msg)
@@ -201,4 +250,56 @@ function serialHandler(data) {
     console.log('received', data)
     var handleSerial = handler[data.FLAG];
     handleSerial(data);
+}
+
+function sendData(data) {
+    dataStr = JSON.stringify(data);
+    if (dataStr.length > MTU) {
+        //send data in fragment
+        dataFrag = chunkSubstr(dataStr)
+        msg = {
+            'retires': 0,
+            'msg': {
+                'MSG_ID': '',
+                'FLAG': 'DATA',
+                'FRAG': true,
+                'FRAG_LEN': dataFrag.length,
+                'DATA': ''
+            }
+        }
+        Object.keys(SERVER_LIST).forEach((key, index) => {
+            msg.msg.FRAG_ID = 0;
+            var lenA = key.length - 5;
+            msg.msg.TOA = parseInt(key.slice(0,lenA));
+            msg.msg.TOB = parseInt(key.slice(-5));
+            msg.msg.MSG_ID = MSG_ID++;
+
+            for (const [i, frag] of dataFrag.entries()) {
+                msg.msg.DATA = frag;
+                msg.msg.FRAG_ID = msg.msg.FRAG_ID++;
+
+                TO_SEND_BUFF.push(msg);
+                sendToSerial();
+            }
+        });
+    }
+    else {
+        msg = {
+            'retires': 0,
+            'msg': {
+                'MSG_ID': MSG_ID++,
+                'FLAG': 'DATA',
+                'FRAG': false,
+                'DATA': JSON.stringify(data)
+            }
+        }
+        Object.keys(SERVER_LIST).forEach((key, index) => {
+            var lenA = key.length - 5;
+            msg.msg.TOA = parseInt(key.slice(0,lenA));
+            msg.msg.TOB = parseInt(key.slice(-5));
+            msg.msg.MSG_ID = MSG_ID++;
+            TO_SEND_BUFF.push(msg);
+            sendToSerial();
+        });
+    }
 }
