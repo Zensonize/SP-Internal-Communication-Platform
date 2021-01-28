@@ -45,7 +45,7 @@ app.get('/', function(req,res) {
 
 app.post('/chat', function(req, res) {
     var data = req.body;
-    console.log('frontend received', data)
+    // console.log('frontend received', data)
     res.sendStatus(200);
     //test accepting chat event
     sendData(data)
@@ -63,7 +63,7 @@ PORT.on('open', () => {
 
 parser.on("data", (data) => {
     try {
-        console.log('read >', data);
+        // console.log('read >', data);
         const dataJSON = JSON.parse(data);
         serialHandler(dataJSON);
     } catch (err) {
@@ -107,7 +107,7 @@ const handler = {
         if(!data.SUCCESS){
             recentSend = SENT_BUFF.pop();
             if(recentSend.retires >=1){
-                console.log('failed to send', recentSend)
+                console.log('failed to send', recentSend.msg.MSG_ID);
                 exportCSVLog(recentSend,null,false,true);
             }
             else {
@@ -122,15 +122,16 @@ const handler = {
                 if (data.ACK_FRAG_ID == -1){
                     SENT_BUFF.splice(i, 1);
                     exportCSVLog(msg,data,false,false);
+                    console.log('ACK', data.ACK_MSG_ID, data.ACK_FRAG_ID, 'RTT', Date.now() - msg.sendTime())
                     break;
                 }
                 else if (data.ACK_FRAG_ID == msg.msg.FRAG_ID) {
                     SENT_BUFF.splice(i, 1);
+                    console.log('ACK-FRAG', data.ACK_MSG_ID, data.ACK_FRAG_ID)
                     break;
                 }
             }
         }
-        console.log('ACK', data.ACK_MSG_ID,data.ACK_FRAG_ID)
     },
     'CHANGED_CONNECTION': function(data) {
         NODE_LIST = data.NODE_LIST;
@@ -146,7 +147,7 @@ const handler = {
     'DATA': function(data) {
         if (!data.FRAG) {
             sendACK(data.FROM, data.MSG_ID, -1);
-            console.log('received data', data);
+            console.log('received dataID', data.MSG_ID);
         }
         else {
             sendACK(data.FROM, data.MSG_ID, data.FRAG_ID);
@@ -168,7 +169,7 @@ const handler = {
                             }
                         }
                     }
-                    console.log('received fragmentedData', dataFull);
+                    console.log('received fragmentedData', dataFull.MSG_ID);
                     delete RECV_BUFF[data.FROM][data.MSG_ID];
                 }
             }
@@ -235,15 +236,15 @@ function sendToSerial(){
         //there is message waiting to send and the ESP32 is free to send new message
         isFree = false;
         msgToSend = TO_SEND_BUFF.shift();
-        console.log('sending', msgToSend)
+        console.log('sending', msgToSend.msg.FLAG,'ID:',msgToSend.msg.MSG_ID)
         PORT.write(JSON.stringify(msgToSend.msg));
         msgToSend.timeSent = Date.now();
         msgToSend.retires = msgToSend.retires + 1;
-        SENT_BUFF.push(msgToSend)
+        SENT_BUFF.push(msgToSend);
         
         //set routine to check if the message was loss
         if (timeoutRoutine == null) {
-            timeoutRoutine = setInterval(msgTimeout,500)
+            timeoutRoutine = setInterval(msgTimeout,500);
         }
     }
     else if (isFree && !TO_SEND_BUFF){
@@ -263,11 +264,11 @@ function msgTimeout(){
     }
     else {
         for (const [i, msg] of SENT_BUFF.entries()) {
-            console.log(Date.now() - msg.timeSent);
+            // console.log(Date.now() - msg.timeSent);
             if (msg.msg.FLAG === 'ECHO'){
                 SENT_BUFF.splice(i,1);
             }
-            else if (Date.now() - msg.timeSent >= 2000){
+            else if (Date.now() - msg.timeSent >= 3000){
                 
                 var timedoutMsg = msg;
                 timedoutMsg.timedout = timedoutMsg.timedout + 1;
@@ -304,7 +305,7 @@ function msgTimeout(){
 }
 
 function serialHandler(data) {
-    console.log('received', data)
+    // console.log('received', data)
     var handleSerial = handler[data.FLAG];
     handleSerial(data);
 }

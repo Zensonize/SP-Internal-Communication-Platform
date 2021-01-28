@@ -42,7 +42,7 @@ app.get('/', function(req,res) {
 
 app.post('/chat', function(req, res) {
     var data = req.body;
-    console.log('frontend received', data)
+    // console.log('frontend received', data)
     res.sendStatus(200);
     //test accepting chat event
     sendData(data)
@@ -104,7 +104,7 @@ const handler = {
         if(!data.SUCCESS){
             recentSend = SENT_BUFF.pop();
             if(recentSend.retires >=1){
-                console.log('failed to send', recentSend)
+                console.log('failed to send', recentSend.msg.MSG_ID);
             }
             else {
                 TO_SEND_BUFF.push(recentSend);
@@ -117,10 +117,12 @@ const handler = {
             if (data.ACK_MSG_ID == msg.msg.MSG_ID) {
                 if (data.ACK_FRAG_ID == -1){
                     SENT_BUFF.splice(i, 1);
+                    console.log('ACK', data.ACK_MSG_ID, data.ACK_FRAG_ID, 'RTT', Date.now() - msg.sendTime())
                     break;
                 }
                 else if (data.ACK_FRAG_ID == msg.msg.FRAG_ID) {
                     SENT_BUFF.splice(i, 1);
+                    console.log('ACK-FRAG', data.ACK_MSG_ID, data.ACK_FRAG_ID)
                     break;
                 }
             }
@@ -141,7 +143,7 @@ const handler = {
     'DATA': function(data) {
         if (!data.FRAG) {
             sendACK(data.FROM, data.MSG_ID, -1);
-            console.log('received data', data);
+            console.log('received dataID', data.MSG_ID);
             exportCSVLog(data);
         }
         else {
@@ -164,7 +166,7 @@ const handler = {
                             }
                         }
                     }
-                    console.log('received fragmentedData', dataFull);
+                    console.log('received fragmentedData', dataFull.MSG_ID);
                     delete RECV_BUFF[data.FROM][data.MSG_ID];
                 }
             }
@@ -179,6 +181,7 @@ const handler = {
 function sendACK(to, ackMsgId, ackFragId) {
     msg = {
         'retires': 0,
+        'timedout': 0,
         'msg': {
             'MSG_ID': MSG_ID++,
             'FLAG': 'ACK',
@@ -230,7 +233,7 @@ function sendToSerial(){
         //there is message waiting to send and the ESP32 is free to send new message
         isFree = false;
         msgToSend = TO_SEND_BUFF.shift();
-        console.log('sending', msgToSend)
+        console.log('sending', msgToSend.msg.FLAG,'ID:',msgToSend.msg.MSG_ID)
         PORT.write(JSON.stringify(msgToSend.msg));
         msgToSend.timeSent = Date.now();
         msgToSend.retires = msgToSend.retires + 1;
@@ -238,7 +241,7 @@ function sendToSerial(){
         
         //set routine to check if the message was loss
         if (timeoutRoutine == null) {
-            timeoutRoutine = setInterval(msgTimeout,1000)
+            timeoutRoutine = setInterval(msgTimeout,500);
         }
     }
     else if (isFree && !TO_SEND_BUFF){
@@ -256,6 +259,45 @@ function msgTimeout(){
         clearInterval(timeoutRoutine);
         timeoutRoutine = null;
     }
+    else {
+        for (const [i, msg] of SENT_BUFF.entries()) {
+            // console.log(Date.now() - msg.timeSent);
+            if (msg.msg.FLAG === 'ECHO'){
+                SENT_BUFF.splice(i,1);
+            }
+            else if (Date.now() - msg.timeSent >= 3000){
+                
+                var timedoutMsg = msg;
+                timedoutMsg.timedout = timedoutMsg.timedout + 1;
+
+                if (timedoutMsg.timedout >= 5){
+                    console.log('msg', timedoutMsg.msg.MSG_ID ,'timed out and discarded');
+                    SENT_BUFF.splice(i,1);
+                    //discard timed out message 
+                }
+                else {
+                    console.log('msg', timedoutMsg.msg.MSG_ID ,'timed out and retry sending');
+    
+                    var inserted = false;
+                    for (const [i, msg] of TO_SEND_BUFF.entries()) {
+                        if (msg.FLAG === 'ACK') continue;
+                        else {
+                            TO_SEND_BUFF.splice(i,0,timedoutMsg);
+                            SENT_BUFF.splice(i,1);
+                            inserted = true;
+                            break;
+                        }
+                    }
+                    if(!inserted){
+                        TO_SEND_BUFF.push(timedoutMsg);
+                        SENT_BUFF.splice(i,1);
+                    }
+                    sendToSerial();
+                } 
+            }
+        }
+    }
+    
 }
 
 function serialHandler(data) {
@@ -271,6 +313,7 @@ function sendData(data) {
         dataFrag = chunkSubstr(dataStr)
         msg = {
             'retires': 0,
+            'timedout': 0,
             'msg': {
                 'MSG_ID': '',
                 'FLAG': 'DATA',
@@ -298,6 +341,7 @@ function sendData(data) {
     else {
         msg = {
             'retires': 0,
+            'timedout': 0,
             'msg': {
                 'MSG_ID': MSG_ID++,
                 'FLAG': 'DATA',
