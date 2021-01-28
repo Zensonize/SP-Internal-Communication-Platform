@@ -11,7 +11,7 @@
           target="_blank"
           rel="noopener noreferrer"
           class="button--green"
-          variant="outline-success"          
+          variant="outline-success"
         >
           About
         </b-button>
@@ -20,7 +20,7 @@
           target="_blank"
           rel="noopener noreferrer"
           class="button--grey"
-          variant="outline-light" 
+          variant="outline-light"
         >
           What is Privachat?
         </b-button>
@@ -33,31 +33,27 @@
 </template>
 
 <script>
-import Vue from 'vue'
+import Vue from "vue";
 import ColorModePicker from "@/components/ColorModePicker.vue";
-import DigitalClock from 'vue-digital-clock'
-import VueSidebarMenu from 'vue-sidebar-menu'
-import 'vue-sidebar-menu/dist/vue-sidebar-menu.css'
-Vue.use(VueSidebarMenu)
+import DigitalClock from "vue-digital-clock";
+import VueSidebarMenu from "vue-sidebar-menu";
+import "vue-sidebar-menu/dist/vue-sidebar-menu.css";
+Vue.use(VueSidebarMenu);
 export default Vue.extend({
   name: "PrivaChat",
-  components:
-  {
+  components: {
     ColorModePicker,
-    DigitalClock,
+    DigitalClock
   },
   data() {
-            return {
-              title: "PrivaChat"
-            }
-        },
-        head(){
-          return {
-            title: this.title,
-          }
-        },
-
-})
+    return {
+      title: "PrivaChat"
+    };
+  },
+  head() {
+    return {
+      title: this.title
+    };
+  }
+});
 </script>
-
-

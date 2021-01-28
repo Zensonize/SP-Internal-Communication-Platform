@@ -104,7 +104,7 @@
           <b-modal id="addroom" title="Addroom" @ok="addnew_room">
             <b-container fluid>
               <b-row class="my-1">
-                <b-col sm="8" style="padding-left:-10px">
+                <b-col sm="12" style="padding-left:-10px">
                   <b-form-group
                     :state="room_exist_state"
                     :invalid-feedback="invalidFeedback"
@@ -114,22 +114,14 @@
                       :state="room_exist_state"
                       size="sm"
                       placeholder="Enter new room name eg. Priva Room"
-                      style="margin-left:-15px"
                     ></b-form-input>
                   </b-form-group>
                 </b-col>
-                <b-col sm="4">
-                  <b-button
-                    variant="outline-primary"
-                    size="sm"
-                    @click="get_duplicate_name"
-                    >Check exist room</b-button
-                  ></b-col
-                >
+                
               </b-row>
             </b-container>
           </b-modal>
-          <b-dropdown-item v-b-modal.modal-1>Change-logs</b-dropdown-item>
+          <b-dropdown-item v-b-modal.modal-1 @click="$bvToast.show('modal-1')">Change-logs</b-dropdown-item>
           <changelog />
           <b-dropdown-item href="#" @click="logout = !logout"
             >Sign Out</b-dropdown-item
@@ -162,10 +154,10 @@ export default Vue.extend({
       return this.Create_room.length >= 4;
     },
     invalidFeedback() {
-      if (this.Create_room === this.room_exist) {
+      if (this.Create_room.length) {
         return "Please enter more than 4 Characters.";
       }
-      return "Please enter something";
+      return "Please enter some character";
     },
     nameState() {
       return this.name.length > 2 ? true : false;
@@ -206,6 +198,7 @@ export default Vue.extend({
     };
   },
   methods: {
+    // Get the room list in login page
     getroom_list() {
       this.socket.emit("get_room_list", "User_request");
       this.socket.on("room_lists_result", payload => {
@@ -218,31 +211,33 @@ export default Vue.extend({
           });
       });
     },
-    // Get room list from Backend
-    get_duplicate_name() {
-      this.socket.emit("check_exist_room", this.Create_room);
-      this.socket.on("able_to_create", payload => {
-        alert(payload);
-      });
-      this.socket.on("unable_to_create", payload => {
-        alert(payload);
-      });
-    },
-    // Handle add new room
+
+    // Handle add new room and also check existed room name
     addnew_room() {
-      this.socket.emit("user_create_room", this.Create_room);
-      this.Create_room = "";
+      if(!this.Create_room || this.Create_room.length <= 3) {
+        alert("This form cannot be empty or less than 4 characters")
+        return;
+      }
+      this.socket.emit("user_create_room", this.Create_room)
+        this.socket.on("unable_to_create", (payload) => {
+        alert(payload.msg);
+        this.Check_duplicate_Room = payload.room_existed
+        return -1
+      });
+        this.Create_room = "";
       this.socket.on("create_success", payload => {
         alert(payload);
       });
     },
+
     // Handle add new user
     handleRegister() {
       if (!this.name || !this.password || !this.password_confirm) {
         alert("This form Cannot empty!");
         return;
       }
-      console.log(this.name);
+      else{
+        console.log(this.name);
       this.socket.emit("user_regis", this.name, this.password);
       this.socket.on("regis_success", msg => {
         alert(msg);
@@ -253,10 +248,12 @@ export default Vue.extend({
       this.name = "";
       this.password = "";
       this.password2 = "";
+      }
     },
+
     // Handle login user
     handlelogin() {
-      if (!this.name_auth || !this.password_auth) {
+      if (!this.name_auth || !this.password_auth || !this.selected) {
         alert("This form Cannot empty!");
         return;
       }
