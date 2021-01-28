@@ -61,11 +61,12 @@ var RoomModel = mongoose.Schema({
 
 var room_list = mongoose.model("room_list", RoomModel);
 room_list.find({}, { RoomID: 1, _id: 0 }, (err, result) => {
-  result.map(({RoomID}) => RoomID).forEach((element) => {
-    lists.push(element)
-  })
+  result
+    .map(({ RoomID }) => RoomID)
+    .forEach((element) => {
+      lists.push(element);
+    });
   room_lists = result;
-  
 });
 
 const userRegister = mongoose.Schema({
@@ -121,37 +122,36 @@ io.on("connection", (socket) => {
 
   socket.on("user_create_room", (data) => {
     console.log(data);
-    let new_room = mongoose.model(data, chatschema);
-    let data_room = new new_room({
-      username: "Admin",
-      msg: `Welcome to ${data}`,
-      date: new moment().format("DD/MM/YYYY HH:mm:ss"),
-    });
-    let room = new room_list({
-      RoomID: data,
-    });
-    room.save(data);
-    data_room.save((err, result) => {
-      if (err) throw err;
-      console.log(result);
-    });
-    socket.emit("create_success", "Create Room Successfully!");
-  });
-
-  socket.on("check_exist_room", (payload_room) => {
     room_list.find(
       {
-        RoomID: payload_room,
+        RoomID: data,
       },
       (err, result) => {
         if (err) throw err;
         console.log(result);
         if (result.length === 0) {
-          console.log(`This room name ${payload_room} is not created`);
-          socket.emit("able_to_create", "Able to use this name");
+          console.log(`This room name ${data} is not created`);
+          let new_room = mongoose.model(data, chatschema);
+          let data_room = new new_room({
+            username: "Admin",
+            msg: `Welcome to ${data}`,
+            date: new moment().format("DD/MM/YYYY HH:mm:ss"),
+          });
+          let room = new room_list({
+            RoomID: data,
+          });
+          room.save(data);
+          data_room.save((err, result) => {
+            if (err) throw err;
+            console.log(result);
+            socket.emit("create_success", "Create Room Successfully!");
+          });
         } else {
-          console.log(`This room name ${payload_room} already created`);
-          socket.emit("unable_to_create", "Room is existed");
+          console.log(`This room name ${data} already created`);
+          socket.emit("unable_to_create", {
+            msg: "Room is existed",
+            room_existed: data,
+          });
         }
       }
     );
@@ -168,7 +168,7 @@ io.on("connection", (socket) => {
   socket.on("user_auth", (user_payload, password_payload, room) => {
     present_room_id = room;
     console.log("User join to ", room);
-    
+
     userDataModel.find(
       {
         registername: user_payload,
@@ -189,15 +189,15 @@ io.on("connection", (socket) => {
     var custom_room = mongoose.model(present_room_id, chatschema);
     custom_room.find((err, result) => {
       if (err) throw err;
-      msg_room_2 = result
+      msg_room_2 = result;
     });
   });
 
   socket.on("msg", (msg, room, user) => {
-    present_room_id = room
+    present_room_id = room;
     console.log(`${present_room_id} active!`);
     console.log(`${socket.username} said '${msg}'`);
-    
+
     let message = mongoose.model(present_room_id, chatschema);
     let save_msg = new message({
       username: user,
@@ -211,8 +211,8 @@ io.on("connection", (socket) => {
         msg_room_2.push(result);
         io.to(room).emit("msg_room", result);
       });
-    })
-    
+    });
+
     return (present_room_id = room);
   });
 
