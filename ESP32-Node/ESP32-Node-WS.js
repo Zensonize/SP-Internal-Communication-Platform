@@ -83,7 +83,7 @@ let TO_SEND_BUFF = [];
 let SENT_BUFF = []
 let RECV_BUFF = {};
 let isFree = true;
-let timeoutRoutine = null;
+let timeoutRoutine = setInterval(msgTimeout,500);
 let bcastServerRoutine = setInterval(bcastServer,1200000);
 
 const handler = {
@@ -108,7 +108,7 @@ const handler = {
             recentSend = SENT_BUFF.pop();
             if(recentSend.retires >=1){
                 console.log('failed to send', recentSend)
-                exportCSVLog(recentSend.msg,null,false,true);
+                exportCSVLog(recentSend,null,false,true);
             }
             else {
                 TO_SEND_BUFF.push(recentSend);
@@ -121,8 +121,8 @@ const handler = {
             if (data.ACK_MSG_ID == msg.msg.MSG_ID) {
                 if (data.ACK_FRAG_ID == -1){
                     SENT_BUFF.splice(i, 1);
+                    exportCSVLog(msg,data,false,false);
                     break;
-                    exportCSVLog(msg.msg,data,false,false);
                 }
                 else if (data.ACK_FRAG_ID == msg.msg.FRAG_ID) {
                     SENT_BUFF.splice(i, 1);
@@ -183,6 +183,7 @@ const handler = {
 function sendACK(to, ackMsgId, ackFragId) {
     msg = {
         'retires': 0,
+        'timedout': 0,
         'msg': {
             'MSG_ID': MSG_ID++,
             'FLAG': 'ACK',
@@ -242,7 +243,7 @@ function sendToSerial(){
         
         //set routine to check if the message was loss
         if (timeoutRoutine == null) {
-            timeoutRoutine = setInterval(msgTimeout,1000)
+            timeoutRoutine = setInterval(msgTimeout,500)
         }
     }
     else if (isFree && !TO_SEND_BUFF){
@@ -260,6 +261,46 @@ function msgTimeout(){
         clearInterval(timeoutRoutine);
         timeoutRoutine = null;
     }
+    else {
+        for (const [i, msg] of SENT_BUFF.entries()) {
+            console.log(Date.now() - msg.timeSent);
+            if (msg.msg.FLAG === 'ECHO'){
+                SENT_BUFF.splice(i,1);
+            }
+            else if (Date.now() - msg.timeSent >= 2000){
+                
+                var timedoutMsg = msg;
+                timedoutMsg.timedout = timedoutMsg.timedout + 1;
+                
+                exportCSVLog(timedoutMsg,null,true,false);
+                if (timedoutMsg.timedout >= 5){
+                    console.log('msg', timedoutMsg.msg.MSG_ID ,'timed out and discarded');
+                    SENT_BUFF.splice(i,1);
+                    //discard timed out message 
+                }
+                else {
+                    console.log('msg', timedoutMsg.msg.MSG_ID ,'timed out and retry sending');
+    
+                    var inserted = false;
+                    for (const [i, msg] of TO_SEND_BUFF.entries()) {
+                        if (msg.FLAG === 'ACK') continue;
+                        else {
+                            TO_SEND_BUFF.splice(i,0,timedoutMsg);
+                            SENT_BUFF.splice(i,1);
+                            inserted = true;
+                            break;
+                        }
+                    }
+                    if(!inserted){
+                        TO_SEND_BUFF.push(timedoutMsg);
+                        SENT_BUFF.splice(i,1);
+                    }
+                    sendToSerial();
+                } 
+            }
+        }
+    }
+    
 }
 
 function serialHandler(data) {
@@ -275,6 +316,7 @@ function sendData(data) {
         dataFrag = chunkSubstr(dataStr)
         msg = {
             'retires': 0,
+            'timedout': 0,
             'msg': {
                 'MSG_ID': '',
                 'FLAG': 'DATA',
@@ -302,6 +344,7 @@ function sendData(data) {
     else {
         msg = {
             'retires': 0,
+            'timedout': 0,
             'msg': {
                 'MSG_ID': MSG_ID++,
                 'FLAG': 'DATA',
@@ -324,8 +367,8 @@ function exportCSVLog(data,ack,isTimedOut,isError){
     if(isTimedOut){
         csvWriter.writeRecords([
             {
-                'MSG_ID': data.MSG_ID,
-                'DATA_LEN': data.DATA.length,
+                'MSG_ID': data.msg.MSG_ID,
+                'DATA_LEN': data.msg.DATA.length,
                 'ERROR': 'TIMEDOUT',
             }
         ])
@@ -333,8 +376,8 @@ function exportCSVLog(data,ack,isTimedOut,isError){
     else if(isError){
         csvWriter.writeRecords([
             {
-                'MSG_ID': data.MSG_ID,
-                'DATA_LEN': data.DATA.length,
+                'MSG_ID': data.msg.MSG_ID,
+                'DATA_LEN': data.msg.DATA.length,
                 'ERROR': 'NO ROUTE',
             }
         ])
@@ -342,11 +385,12 @@ function exportCSVLog(data,ack,isTimedOut,isError){
     else {
         csvWriter.writeRecords([
             {
-                'MSG_ID': data.MSG_ID,
-                'DATA_LEN': data.DATA.length,
+                'MSG_ID': data.msg.MSG_ID,
+                'MSG_TYPE': data.msg.FLAG,
+                'DATA_LEN': data.msg.DATA.length,
                 'ERROR': 'NONE',
-                'timeSent': ack.sendTime,
-                'timeRecv': ack.recvTime
+                'timeSentACK': ack.sendTime,
+                'timeRecvACK': ack.recvTime
             }
         ])
     }
