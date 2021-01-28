@@ -25,6 +25,20 @@ const ReadLine = require('@serialport/parser-readline');
 const PORT = new SerialPort('/dev/cu.usbserial-0001', {baudRate: 921600});
 const parser = PORT.pipe(new ReadLine({delimiter: "\n"}));
 
+//function for logging data
+const createCsvWriter = require('csv-writer').createObjectCsvWriter;
+const csvWriter = createCsvWriter({
+  path: '10-msg-min_Sender.csv',
+  header: [
+    {id: 'MSG_ID', title: 'MSG_ID'},
+    {id: 'MSG_TYPE', title: 'MSG_TYPE'},
+    {id: 'DATA_LEN', title: 'DATA_LEN'},
+    {id: 'ERROR', title: 'ERROR'},
+    {id: 'timeSentACK', title: 'timeSentACK'},
+    {id: 'timeRecvACK', title: 'timeRecvACK'}
+  ]
+});
+
 app.get('/', function(req,res) {
     res.send('welcome to test interface');
 })
@@ -70,7 +84,7 @@ let SENT_BUFF = []
 let RECV_BUFF = {};
 let isFree = true;
 let timeoutRoutine = null;
-let bcastServerRoutine = setInterval(bcastServer,90000);
+let bcastServerRoutine = setInterval(bcastServer,1200000);
 
 const handler = {
     'ECHO': function(data) {
@@ -94,6 +108,7 @@ const handler = {
             recentSend = SENT_BUFF.pop();
             if(recentSend.retires >=1){
                 console.log('failed to send', recentSend)
+                exportCSVLog(recentSend.msg,null,false,true);
             }
             else {
                 TO_SEND_BUFF.push(recentSend);
@@ -107,6 +122,7 @@ const handler = {
                 if (data.ACK_FRAG_ID == -1){
                     SENT_BUFF.splice(i, 1);
                     break;
+                    exportCSVLog(msg.msg,data,false,false);
                 }
                 else if (data.ACK_FRAG_ID == msg.msg.FRAG_ID) {
                     SENT_BUFF.splice(i, 1);
@@ -301,5 +317,37 @@ function sendData(data) {
             TO_SEND_BUFF.push(msg);
             sendToSerial();
         });
+    }
+}
+
+function exportCSVLog(data,ack,isTimedOut,isError){
+    if(isTimedOut){
+        csvWriter.writeRecords([
+            {
+                'MSG_ID': data.MSG_ID,
+                'DATA_LEN': data.DATA.length,
+                'ERROR': 'TIMEDOUT',
+            }
+        ])
+    }
+    else if(isError){
+        csvWriter.writeRecords([
+            {
+                'MSG_ID': data.MSG_ID,
+                'DATA_LEN': data.DATA.length,
+                'ERROR': 'NO ROUTE',
+            }
+        ])
+    }
+    else {
+        csvWriter.writeRecords([
+            {
+                'MSG_ID': data.MSG_ID,
+                'DATA_LEN': data.DATA.length,
+                'ERROR': 'NONE',
+                'timeSent': ack.sendTime,
+                'timeRecv': ack.recvTime
+            }
+        ])
     }
 }
