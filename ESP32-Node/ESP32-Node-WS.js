@@ -347,7 +347,6 @@ function sendData(data) {
             'retires': 0,
             'timedout': 0,
             'msg': {
-                'MSG_ID': MSG_ID++,
                 'FLAG': 'DATA',
                 'FRAG': false,
                 'DATA': JSON.stringify(data)
