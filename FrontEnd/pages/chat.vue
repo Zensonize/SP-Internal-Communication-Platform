@@ -124,7 +124,7 @@ body {
 #app {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: 90vh;
   width: 100%;
   max-width: 768px;
   margin: 0 auto;

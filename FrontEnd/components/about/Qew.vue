@@ -1,7 +1,7 @@
 <template>
   <div>
     <b-card
-    header="Documentary, Driver"
+    header="Documentary, UX/UI Design"
       title="Qew"
       img-src="@/assets/imgs/qew.jpg"
       img-alt="Image"

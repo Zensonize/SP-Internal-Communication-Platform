@@ -3,8 +3,11 @@
     <div>
       <Logo />
       <h1 class="title">
-        PrivaChat based on Socket IO, NuxtTS
+        PrivaChat
       </h1>
+      <h2 class="clock">
+ขณะนี้เวลา : <digital-clock :blink="true" :displaySeconds="true" />
+      </h2>
       <div class="links">
         <b-button
           href="/about"
@@ -27,7 +30,7 @@
       </div>
 
       <ColorModePicker />
-      <p>ขณะนี้เวลา : <digital-clock :blink="true" :displaySeconds="true" /></p>
+      <p class="created">based on Socket IO, NuxtTS</p>
     </div>
   </div>
 </template>

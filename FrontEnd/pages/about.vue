@@ -75,6 +75,7 @@ h1 {
   text-align: center;
   color: var(--color);
   padding: 5px;
+  margin-top: 5px;
 }
 
 .row {

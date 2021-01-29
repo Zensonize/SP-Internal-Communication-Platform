@@ -25,10 +25,7 @@
 import IconSystem from "@/assets/icons/system.svg?inline";
 import IconLight from "@/assets/icons/light.svg?inline";
 import IconDark from "@/assets/icons/dark.svg?inline";
-import IconSepia from "@/assets/icons/sepia.svg?inline";
 import Vue from "vue";
-import VueI18n from 'vue-i18n'
-
 
 export default Vue.extend({
   components: {
@@ -57,3 +54,4 @@ export default Vue.extend({
   },
 });
 </script>
+

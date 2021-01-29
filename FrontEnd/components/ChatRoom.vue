@@ -21,8 +21,11 @@
       </div>
     </div>
     <form class="input-container" v-on:submit.prevent="sendMessage">
-      <input type="text" v-model="msg" />
       
+      <input type="text" v-model="msg" />
+      <b-form-file v-model="file_upload" id="form_file" type="file" style="color:transparent; 
+width:70px;font-size:14px;border-radius: 25px;"/>
+
       <b-button variant="outline-light" v-on:click="sendMessage" v-bind:disabled="!msg">
         Send
       </b-button>
@@ -68,11 +71,12 @@ export default Vue.extend({
 
 <style lang="scss" scoped>
 
+
+
 .chat-window {
   flex: 1;
   display: flex;
   flex-direction: column;
-  // margin: auto;
   background-color: var(--border-color);
   box-shadow: 1px 1px 6px 0px rgba(0, 0, 0, 0.15);
   max-height: 70%;
@@ -100,7 +104,8 @@ export default Vue.extend({
   }
   .messages {
     flex: 1;
-    overflow: scroll;
+   
+    overflow: auto;
 
     .message {
       display: flex;
