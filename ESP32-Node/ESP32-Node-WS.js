@@ -35,7 +35,9 @@ const csvWriter = createCsvWriter({
     {id: 'DATA_LEN', title: 'DATA_LEN'},
     {id: 'ERROR', title: 'ERROR'},
     {id: 'timeSentACK', title: 'timeSentACK'},
-    {id: 'timeRecvACK', title: 'timeRecvACK'}
+    {id: 'timeRecvACK', title: 'timeRecvACK'},
+    {id: 'timeFrontendSend', title: 'timeFrontendSend'},
+    {id: 'timeFrontendRecv', title: 'timeFrontendRecv'}
   ]
 });
 
@@ -84,7 +86,7 @@ let SENT_BUFF = []
 let RECV_BUFF = {};
 let isFree = true;
 let timeoutRoutine = null;
-const TIMEOUT = 3000
+const TIMEOUT = 5000
 // let bcastServerRoutine = setInterval(bcastServer,1200000);
 
 const handler = {
@@ -108,8 +110,9 @@ const handler = {
         if(!data.SUCCESS){
             recentSend = SENT_BUFF.pop();
             if(recentSend.retires >=1){
+                currentTime = Date.now()
                 console.log('failed to send', recentSend.msg.MSG_ID);
-                exportCSVLog(recentSend,null,false,true);
+                exportCSVLog(recentSend,null,currentTime,false,true);
             }
             else {
                 TO_SEND_BUFF.push(recentSend);
@@ -121,8 +124,9 @@ const handler = {
         for (const [i, msg] of SENT_BUFF.entries()) {
             if (data.ACK_MSG_ID == msg.msg.MSG_ID) {
                 if (data.ACK_FRAG_ID == -1){
+                    currentTime = Date.now()
                     SENT_BUFF.splice(i, 1);
-                    exportCSVLog(msg,data,false,false);
+                    exportCSVLog(msg,data,currentTime,false,false);
                     console.log('ACK', data.ACK_MSG_ID, data.ACK_FRAG_ID, 'RTT Frontend', Date.now() - msg.timeSent)
                     break;
                 }
@@ -270,11 +274,11 @@ function msgTimeout(){
                 SENT_BUFF.splice(i,1);
             }
             else if (Date.now() - msg.timeSent >= TIMEOUT){
-                
+                currentTime = Date.now()
                 var timedoutMsg = msg;
                 timedoutMsg.timedout = timedoutMsg.timedout + 1;
                 
-                exportCSVLog(timedoutMsg,null,true,false);
+                exportCSVLog(timedoutMsg,null,currentTime,true,false);
                 if (timedoutMsg.timedout >= 5){
                     console.log('msg', timedoutMsg.msg.MSG_ID ,'timed out and discarded');
                     SENT_BUFF.splice(i,1);
@@ -364,13 +368,15 @@ function sendData(data) {
     }
 }
 
-function exportCSVLog(data,ack,isTimedOut,isError){
+function exportCSVLog(data,ack,currentTime,isTimedOut,isError){
     if(isTimedOut){
         csvWriter.writeRecords([
             {
                 'MSG_ID': data.msg.MSG_ID,
                 'DATA_LEN': data.msg.DATA.length,
                 'ERROR': 'TIMEDOUT',
+                'timeFrontendSend': data.timeSent,
+                'timeFrontendRecv': currentTime
             }
         ])
     }
@@ -380,6 +386,8 @@ function exportCSVLog(data,ack,isTimedOut,isError){
                 'MSG_ID': data.msg.MSG_ID,
                 'DATA_LEN': data.msg.DATA.length,
                 'ERROR': 'NO ROUTE',
+                'timeFrontendSend': data.timeSent,
+                'timeFrontendRecv': currentTime
             }
         ])
     }
@@ -391,7 +399,9 @@ function exportCSVLog(data,ack,isTimedOut,isError){
                 'DATA_LEN': data.msg.DATA.length,
                 'ERROR': 'NONE',
                 'timeSentACK': ack.sendTime,
-                'timeRecvACK': ack.recvTime
+                'timeRecvACK': ack.recvTime,
+                'timeFrontendSend': data.timeSent,
+                'timeFrontendRecv': currentTime
             }
         ])
     }
