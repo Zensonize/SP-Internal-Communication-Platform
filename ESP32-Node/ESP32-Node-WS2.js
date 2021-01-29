@@ -33,7 +33,7 @@ server.listen(5001);
 //listen to serial port
 var SerialPort = require('serialport');
 const ReadLine = require('@serialport/parser-readline');
-const PORT = new SerialPort('/dev/cu.usbserial-3', {baudRate: 921600});
+const PORT = new SerialPort('/dev/cu.usbserial-1', {baudRate: 921600});
 const parser = PORT.pipe(new ReadLine({delimiter: "\n"}));
 
 app.get('/', function(req,res) {
