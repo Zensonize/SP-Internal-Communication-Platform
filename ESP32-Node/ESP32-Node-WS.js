@@ -28,7 +28,7 @@ const parser = PORT.pipe(new ReadLine({delimiter: "\n"}));
 //function for logging data
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const csvWriter = createCsvWriter({
-  path: '10-msg-min_Sender.csv',
+  path: 'log/10-msg-min_Sender.csv',
   header: [
     {id: 'MSG_ID', title: 'MSG_ID'},
     {id: 'MSG_TYPE', title: 'MSG_TYPE'},
@@ -83,8 +83,9 @@ let TO_SEND_BUFF = [];
 let SENT_BUFF = []
 let RECV_BUFF = {};
 let isFree = true;
-let timeoutRoutine = setInterval(msgTimeout,500);
-let bcastServerRoutine = setInterval(bcastServer,1200000);
+let timeoutRoutine = null;
+const TIMEOUT = 3000
+// let bcastServerRoutine = setInterval(bcastServer,1200000);
 
 const handler = {
     'ECHO': function(data) {
@@ -122,7 +123,7 @@ const handler = {
                 if (data.ACK_FRAG_ID == -1){
                     SENT_BUFF.splice(i, 1);
                     exportCSVLog(msg,data,false,false);
-                    console.log('ACK', data.ACK_MSG_ID, data.ACK_FRAG_ID, 'RTT', Date.now() - msg.sendTime())
+                    console.log('ACK', data.ACK_MSG_ID, data.ACK_FRAG_ID, 'RTT Frontend', Date.now() - msg.timeSent)
                     break;
                 }
                 else if (data.ACK_FRAG_ID == msg.msg.FRAG_ID) {
@@ -268,7 +269,7 @@ function msgTimeout(){
             if (msg.msg.FLAG === 'ECHO'){
                 SENT_BUFF.splice(i,1);
             }
-            else if (Date.now() - msg.timeSent >= 3000){
+            else if (Date.now() - msg.timeSent >= TIMEOUT){
                 
                 var timedoutMsg = msg;
                 timedoutMsg.timedout = timedoutMsg.timedout + 1;

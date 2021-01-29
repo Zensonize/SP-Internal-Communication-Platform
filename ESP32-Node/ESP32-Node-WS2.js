@@ -5,7 +5,7 @@ const bodyParser = require('body-parser');
 
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const csvWriter = createCsvWriter({
-  path: '10-msg-min_Receiver.csv',
+  path: 'log/10-msg-min_Receiver.csv',
   header: [
     {id: 'MSG_ID', title: 'MSG_ID'},
     {id: 'DATA_LEN', title: 'DATA_LEN'},
@@ -33,7 +33,7 @@ server.listen(5001);
 //listen to serial port
 var SerialPort = require('serialport');
 const ReadLine = require('@serialport/parser-readline');
-const PORT = new SerialPort('/dev/cu.usbserial-2', {baudRate: 921600});
+const PORT = new SerialPort('/dev/cu.usbserial-3', {baudRate: 921600});
 const parser = PORT.pipe(new ReadLine({delimiter: "\n"}));
 
 app.get('/', function(req,res) {
@@ -81,7 +81,8 @@ let SENT_BUFF = []
 let RECV_BUFF = {};
 let isFree = true;
 let timeoutRoutine = null;
-let bcastServerRoutine = setInterval(bcastServer,1200000);
+const TIMEOUT = 3000
+// let bcastServerRoutine = setInterval(bcastServer,1200000);
 
 const handler = {
     'ECHO': function(data) {
@@ -117,7 +118,7 @@ const handler = {
             if (data.ACK_MSG_ID == msg.msg.MSG_ID) {
                 if (data.ACK_FRAG_ID == -1){
                     SENT_BUFF.splice(i, 1);
-                    console.log('ACK', data.ACK_MSG_ID, data.ACK_FRAG_ID, 'RTT', Date.now() - msg.sendTime())
+                    console.log('ACK', data.ACK_MSG_ID, data.ACK_FRAG_ID, 'RTT Frontend', Date.now() - msg.timeSent)
                     break;
                 }
                 else if (data.ACK_FRAG_ID == msg.msg.FRAG_ID) {
@@ -262,16 +263,16 @@ function msgTimeout(){
     else {
         for (const [i, msg] of SENT_BUFF.entries()) {
             // console.log(Date.now() - msg.timeSent);
-            if (msg.msg.FLAG === 'ECHO'){
+            if (msg.msg.FLAG === 'ECHO' || msg.msg.FLAG === 'ACK'){
                 SENT_BUFF.splice(i,1);
             }
-            else if (Date.now() - msg.timeSent >= 3000){
+            else if (Date.now() - msg.timeSent >= TIMEOUT){
                 
                 var timedoutMsg = msg;
                 timedoutMsg.timedout = timedoutMsg.timedout + 1;
 
                 if (timedoutMsg.timedout >= 5){
-                    console.log('msg', timedoutMsg.msg.MSG_ID ,'timed out and discarded');
+                    console.log('msg', timedoutMsg.msg.MSG_ID, timedoutMsg.msg.FLAG ,'timed out and discarded');
                     SENT_BUFF.splice(i,1);
                     //discard timed out message 
                 }
