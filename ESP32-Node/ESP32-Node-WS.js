@@ -23,12 +23,13 @@ server.listen(5000);
 var SerialPort = require('serialport');
 const ReadLine = require('@serialport/parser-readline');
 const PORT = new SerialPort('/dev/cu.usbserial-0001', {baudRate: 921600});
+// const PORT = new SerialPort('/dev/cu.usbserial-0001', {baudRate: 3686400});
 const parser = PORT.pipe(new ReadLine({delimiter: "\n"}));
 
 //function for logging data
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const csvWriter = createCsvWriter({
-  path: 'log/20-msg-min_Sender.csv',
+  path: 'log/10-msg-min_Sender.csv',
   header: [
     {id: 'MSG_ID', title: 'MSG_ID'},
     {id: 'MSG_TYPE', title: 'MSG_TYPE'},
@@ -86,7 +87,7 @@ let SENT_BUFF = []
 let RECV_BUFF = {};
 let isFree = true;
 let timeoutRoutine = null;
-const TIMEOUT = 5000
+const TIMEOUT = 10000
 // let bcastServerRoutine = setInterval(bcastServer,1200000);
 
 const handler = {
