@@ -29,7 +29,7 @@ const parser = PORT.pipe(new ReadLine({delimiter: "\n"}));
 //function for logging data
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const csvWriter = createCsvWriter({
-  path: 'log/50-msg-min_Sender.csv',
+  path: 'log/60-msg-min_Sender.csv',
   header: [
     {id: 'MSG_ID', title: 'MSG_ID'},
     {id: 'MSG_TYPE', title: 'MSG_TYPE'},

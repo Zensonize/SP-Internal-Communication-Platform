@@ -5,7 +5,7 @@ const bodyParser = require('body-parser');
 
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const csvWriter = createCsvWriter({
-  path: 'log/50-msg-min_Receiver.csv',
+  path: 'log/60-msg-min_Receiver.csv',
   header: [
     {id: 'MSG_ID', title: 'MSG_ID'},
     {id: 'DATA_LEN', title: 'DATA_LEN'},
