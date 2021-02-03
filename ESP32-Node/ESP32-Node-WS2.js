@@ -106,7 +106,7 @@ const handler = {
         if(!data.SUCCESS){
             recentSend = SENT_BUFF.pop();
             if(recentSend.retires >=1){
-                console.log('failed to send', recentSend.msg.MSG_ID);
+                console.log('ESP ERROR failed to send', recentSend.msg.MSG_ID);
             }
             else {
                 TO_SEND_BUFF.push(recentSend);
