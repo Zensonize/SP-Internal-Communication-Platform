@@ -1,7 +1,7 @@
 var app = require("express")();
 
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "http://192.168.1.43:3000");
+  res.header("Access-Control-Allow-Origin", "http://172.20.10.4:3000");
   res.header(
     "Access-Control-Allow-Methods",
     "POST, GET, PUT, PATCH, DELETE, OPTIONS"
@@ -30,7 +30,7 @@ const moment = require("moment");
 const { error } = require("console");
 moment.locale("th");
 
-mongoose.connect("mongodb://192.168.1.43:27017/chat", {
+mongoose.connect("mongodb://172.20.10.4:27017/chat", {
   auth: {
     authSource: "admin",
   },

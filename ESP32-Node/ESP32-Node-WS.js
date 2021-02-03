@@ -9,8 +9,8 @@ app.use(express.json());
 var server = http.createServer(app);
 server.listen(5000);
 
-//listen to socketio event
-// var io = require('socket.io').listen(server);
+// listen to socketio event
+var io = require('socket.io').listen("http://172.20.10.4:3000");
 
 // app.use('/static', express.static('node_modules'));
 
@@ -407,3 +407,11 @@ function exportCSVLog(data,ack,currentTime,isTimedOut,isError){
         ])
     }
 }
+
+io.on('connection', function (socket) {
+    console.log("Connected succesfully to the socket ...");
+})
+
+io.on("passthrough", (payload) => {
+    sendData(payload)
+})

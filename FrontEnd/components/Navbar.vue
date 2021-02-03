@@ -192,7 +192,7 @@ export default Vue.extend({
       /** Room **/
       Create_room: "",
       /** Room **/
-      socket: io("http://192.168.1.43:3000"), // this IP can be changeable
+      socket: io("http://172.20.10.4:3000"), // this IP can be changeable
       selected: null,
       options: [{ value: null, text: "Click refresh to select chat room" }]
     };
