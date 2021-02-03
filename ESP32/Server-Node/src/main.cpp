@@ -8,45 +8,25 @@
 Scheduler userScheduler; // to control your personal task
 painlessMesh  mesh;
 
-// User stub
-// void sendMessage() ; // Prototype so PlatformIO doesn't complain
-// void sendFreeMem() ; // Prototype so PlatformIO doesn't complain
-
-// Task taskSendMessage( TASK_SECOND * 5 , TASK_FOREVER, &sendMessage );
-// void sendMessage() {
-//   JSONVar msg;
-//   msg["FLAG"] = "DATA";
-//   msg["DATA"] = "Testmessage";
-//   msg["sendTime"] = String(mesh.getNodeTime());
-//   mesh.sendBroadcast(JSON.stringify(msg));
-// }
-
-// Task taskSendFreeMem( TASK_SECOND * 60, TASK_FOREVER, &sendFreeMem);
-// void sendFreeMem() {
-//   JSONVar freeMem;
-//   freeMem["FLAG"] = "MEM";
-//   freeMem["MEM"] = String(ESP.getFreeHeap());
-//   freeMem["BCAST"] = "TRUE";
-//   Serial.println(JSON.stringify(freeMem));
-// }
-
-// Needed for painless library
 void receivedCallback( uint32_t from, String &msg ) {
-  // Serial.print("_");
-  // Serial.print(from);
-  // Serial.println("_");
   JSONVar recv = JSON.parse(msg.c_str());
   recv["recvTime"] = String(mesh.getNodeTime());
   recv["FROM"] =  String(from);
+
+  String flag = (const char*) recv["FLAG"];
+  if (flag.equals("DATA")){
+    if ((bool) recv["FRAG"]) {
+      sendACK(from, (int) recv["MSG_ID"], (int) recv["FRAG_ID"]);
+    }
+    else {
+      sendACK(from, (int) recv["MSG_ID"], -1);
+    }
+  }
   Serial.println(JSON.stringify(recv));
 }
 
 void newConnectionCallback(uint32_t nodeId) {
-  // JSONVar newConn;
-  // newConn["FLAG"] = "NEW_CONNECTION";
-  // newConn["nodeID"] = String(nodeId);
-
-  // Serial.println(JSON.stringify(newConn));
+  
 }
 
 void changedConnectionCallback() {
@@ -68,11 +48,16 @@ void changedConnectionCallback() {
 }
 
 void nodeTimeAdjustedCallback(int32_t offset) {
-  // JSONVar changeTime;
-  // changeTime["FLAG"] = "CHANGED_TIME";
-  // changeTime["TIME"] = String(mesh.getNodeTime());
+  
+}
 
-  // Serial.println(JSON.stringify(changeTime));
+void sendACK(uint32_t to, int msgID, int fragID) {
+  JSONVar ackMSG;
+  ackMSG["FLAG"] = "ACK";
+  ackMSG["ACK_MSG_ID"] = msgID;
+  ackMSG["ACK_FRAG_ID"] = fragID;
+
+  mesh.sendSingle(to, JSON.stringify(ackMSG));
 }
 
 void handleSerialInput(String inData){
@@ -142,3 +127,4 @@ void loop() {
     handleSerialInput(inData);
   }
 }
+
