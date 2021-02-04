@@ -8,6 +8,15 @@
 Scheduler userScheduler; // to control your personal task
 painlessMesh  mesh;
 
+void sendACK(uint32_t to, int msgID, int fragID) {
+  JSONVar ackMSG;
+  ackMSG["FLAG"] = "ACK";
+  ackMSG["ACK_MSG_ID"] = msgID;
+  ackMSG["ACK_FRAG_ID"] = fragID;
+
+  mesh.sendSingle(to, JSON.stringify(ackMSG));
+}
+
 void receivedCallback( uint32_t from, String &msg ) {
   JSONVar recv = JSON.parse(msg.c_str());
   recv["recvTime"] = String(mesh.getNodeTime());
@@ -49,15 +58,6 @@ void changedConnectionCallback() {
 
 void nodeTimeAdjustedCallback(int32_t offset) {
   
-}
-
-void sendACK(uint32_t to, int msgID, int fragID) {
-  JSONVar ackMSG;
-  ackMSG["FLAG"] = "ACK";
-  ackMSG["ACK_MSG_ID"] = msgID;
-  ackMSG["ACK_FRAG_ID"] = fragID;
-
-  mesh.sendSingle(to, JSON.stringify(ackMSG));
 }
 
 void handleSerialInput(String inData){
