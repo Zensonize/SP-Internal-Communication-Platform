@@ -21,15 +21,22 @@
       </div>
     </div>
     <form class="input-container" v-on:submit.prevent="sendMessage">
-      
       <input type="text" v-model="msg" />
-      <b-form-file v-model="file_upload" id="form_file" type="file" style="color:transparent; 
-width:70px;font-size:14px;border-radius: 25px;"/>
+      <b-form-file
+        v-model="file_upload"
+        id="form_file"
+        type="file"
+        style="color:transparent; 
+width:70px;font-size:14px;border-radius: 25px;"
+      />
 
-      <b-button variant="outline-light" v-on:click="sendMessage" v-bind:disabled="!msg">
+      <b-button
+        variant="outline-light"
+        v-on:click="sendMessage"
+        v-bind:disabled="!msg"
+      >
         Send
       </b-button>
-  
     </form>
   </div>
 </template>
@@ -70,74 +77,69 @@ export default Vue.extend({
 </script>
 
 <style lang="scss" scoped>
-
-
-
 .chat-window {
   flex: 1;
   display: flex;
   flex-direction: column;
   background-color: var(--border-color);
   box-shadow: 1px 1px 6px 0px rgba(0, 0, 0, 0.15);
-  max-height: 70%;
+  max-height: 89%;
+  // word-break: break-word;
   .message-out {
-    background:var(--color-primary);
+    // me or myself
+    background: var(--color-primary);
     border-color: var(--color-primary);
     color: var(--bg);
-    margin-left: 50%;
+    margin-left: 42.5%;
     margin-right: 5px;
-    border-radius: 10px;
-    padding: 0.5em;
-    margin-bottom: 0.5em;
-    font-size: 0.8em;
+    float: right;
+    word-break: break-word;
+    // text-align: right;
   }
   .message-in {
-    background:var(--color-secondary);
+    // other user
+    word-break: break-word;
+    float: left;
+    margin-right: 42.5%;
+    background: var(--color-secondary);
     border-color: var(--color-secondary);
     margin-left: 5px;
     color: var(--bg);
-    margin-right: 50%;
-    border-radius: 10px;
-    padding: 0.5em;
-    margin-bottom: 0.5em;
-    font-size: 0.8em;
   }
   .messages {
     flex: 1;
-   
     overflow: auto;
-
     .message {
-      display: flex;
-      
-      // border-bottom: 1px solid #efefef;
+      margin-bottom: 0.5em;
+      font-size: 0.8em;
+      border-radius: 10px;      
       padding: 10px;
 
       &:last-of-type {
         border-bottom: none;
       }
-      
 
       .username {
         // margin-right: 15px;
-        margin-top: 3.5px;
+        margin-top: 4px;
         font-size: 0.7rem;
-        flex: 0.3;
+        flex: 0.1;
       }
 
       .message-text {
-        margin-left: 5px;
         margin-right: 5px;
         flex: 1;
       }
       .message-datetime {
         // flex: 1;
-        margin-top: 4px;
+        margin-top: 6px;
         font-size: 0.6rem;
       }
     }
   }
   .input-container {
+    overflow-x: auto;
+
     display: flex;
 
     input {

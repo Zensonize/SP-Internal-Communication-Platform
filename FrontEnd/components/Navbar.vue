@@ -16,6 +16,7 @@
         <b-modal
           v-model="modalLogin"
           @ok="handlelogin"
+          @show="getroom_list"
           title="Login to PrivaChat!"
         >
           <div>
@@ -45,12 +46,7 @@
                 :options="options"
                 style="width:80%"
               ></b-form-select>
-              <b-button
-                variant="outline-primary"
-                style="margin-left:0.5rem;"
-                @click="getroom_list"
-                >Refresh</b-button
-              >
+              
             </div>
             <div class="mt-3">
               Room selected: <strong>{{ selected }}</strong>
@@ -192,9 +188,9 @@ export default Vue.extend({
       /** Room **/
       Create_room: "",
       /** Room **/
-      socket: io("http://172.20.10.4:3000"), // this IP can be changeable
+      socket: io("http://127.0.0.1:3000"), // this IP can be changeable
       selected: null,
-      options: [{ value: null, text: "Click refresh to select chat room" }]
+      options: [{ value: null, text: "Click to select chat room" }]
     };
   },
   methods: {
