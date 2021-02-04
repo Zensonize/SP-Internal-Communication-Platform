@@ -30,7 +30,7 @@ export default Vue.extend({
   data: function() {
     return {
       username: "",
-      socket: io("http://192.168.1.43:3000"),
+      socket: io("http://127.0.0.1:3000"),
       messages: [],
       messages2: [],
       messages3: [],
@@ -125,9 +125,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 90vh;
-  width: 100%;
-  max-width: 768px;
-  margin: 0 auto;
+  // margin: 0 auto;
   padding: 15px;
   box-sizing: border-box;
 }
