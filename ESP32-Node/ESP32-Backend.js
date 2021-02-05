@@ -48,7 +48,7 @@ PORT.on('open', () => {
     console.info('serial port open');
 });
 
-PORT.on('data', (data) => {
+parser.on('data', (data) => {
     try {
         const dataJSON = JSON.parse(data);
         serialHandler(dataJSON);
