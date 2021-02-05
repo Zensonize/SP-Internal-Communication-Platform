@@ -1,5 +1,7 @@
+import { SERIAL_PORT, BACKEND_LISTEN, ESP32_EMIT, TIMEOUT, BUADRATE, MTU } from './config';
+
 //listen to socket.io event from node backend
-var io_ListenMsg = require('socket.io').listen("http://172.20.10.4:3000");
+var io_ListenMsg = require('socket.io').listen(BACKEND_LISTEN);
 io_ListenMsg.on("connection", (socket) => {
     console.log("connected to backend");
 
@@ -38,10 +40,7 @@ http.listen(process.env.PORT || 5000, () => {
 //listen to serial port
 var SerialPort = require('serialport');
 const ReadLine = require('@serialport/parser-readline');
-const { serialize } = require('v8');
-const { time } = require('console');
-const { send } = require('process');
-const PORT = new SerialPort('/dev/cu.usbserial-0001', {baudRate: 921600});
+const PORT = new SerialPort(SERIAL_PORT, {baudRate: BUADRATE});
 const parser = PORT.pipe(new ReadLine({delimiter: "\n"}))
 
 PORT.on('open', () => {
@@ -62,7 +61,6 @@ let MSG_ID = 0;
 let SERVER_LIST = {};
 let NODE_LIST = [];
 let TOPOLOGY = {};
-let MTU = 1000;
 
 //variable for flow control
 let TO_SEND_BUFF = [];
@@ -70,7 +68,6 @@ let SENT_BUFF = [];
 let RECV_BUFF = {};
 let isFree = true;
 let timeoutRoutine = null;
-const TIMEOUT = 10000;
 
 const handler = {
     'ECHO': function(data) {
