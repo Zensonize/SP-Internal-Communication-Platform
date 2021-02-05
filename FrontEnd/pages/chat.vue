@@ -14,6 +14,7 @@
 import io from "socket.io-client";
 import ChatRoom from "../components/ChatRoom";
 import Vue from "vue";
+import config from "@/store/config.js"
 
 export default Vue.extend({
   name: "app",
@@ -30,7 +31,7 @@ export default Vue.extend({
   data: function() {
     return {
       username: "",
-      socket: io("http://127.0.0.1:3000"),
+      socket: io(config.host),
       messages: [],
       messages2: [],
       messages3: [],
