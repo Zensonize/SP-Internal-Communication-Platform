@@ -206,13 +206,15 @@ io.on("connection", (socket) => {
       msg: msg,
       date: new moment().format("DD/MM/YYYY HH:mm:ss"),
     });
-    socket.join(room, () => {
+    socket.join(present_room_id, () => {
       save_msg.save((err, result) => {
         if (err) throw err;
         console.log(result);
         msg_room_2.push(result);
-        io.to(room).emit("msg_room", result);
-        sendData(result);
+        io.to(present_room_id).emit("msg_room", result);
+        setTimeout(() => {
+          sendData(result);
+        }, 750);
       });
     });
     //   socket.on("passthrough"), (payload) => {
@@ -243,9 +245,8 @@ http.listen(process.env.PORT || config.port, () => {
 //listen to serial port
 var SerialPort = require("serialport");
 const ReadLine = require("@serialport/parser-readline");
-const PORT = new SerialPort(config.SERIAL_PORT, { baudRate: config.BUADRATE});
+const PORT = new SerialPort(config.SERIAL_PORT, { baudRate: config.BUADRATE });
 const parser = PORT.pipe(new ReadLine({ delimiter: "\n" }));
-
 
 PORT.on("open", () => {
   console.info("serial port open");
@@ -299,14 +300,13 @@ const handler = {
       if (recentSend.retires >= 3) {
         console.error("ESP failed to send", recentSend.msg.MSG_ID);
       } else {
-        console.log('ESP will retires to send within', TO_SEND_BUFF.length)
+        console.log("ESP will retires to send within", TO_SEND_BUFF.length);
         TO_SEND_BUFF.push(recentSend);
         sendToSerial();
       }
-    }
-    else {
-      console.log('ESP is ready to send next')
-      sendToSerial()
+    } else {
+      console.log("ESP is ready to send next");
+      sendToSerial();
     }
   },
   ACK: function (data) {
@@ -345,8 +345,26 @@ const handler = {
   },
   DATA: function (data) {
     if (!data.FRAG) {
-      console.log("RECEIVED ", data.MSG_ID);
+      console.log("RECEIVED ", data.MSG_ID, "ESP HEAP: ", data.HEAP);
       console.log("msg is: ", data.DATA);
+      console.log(present_room_id);
+      var extract_json_obj = JSON.parse(data.DATA);
+      // console.log(extract_json_obj)
+      let message = mongoose.model(present_room_id, chatschema);
+      let u_name_in_chat = extract_json_obj.username;
+      let msg_in_chat = extract_json_obj.msg;
+      let date_in_chat = extract_json_obj.date;
+      let save_msg = new message({
+        username: u_name_in_chat,
+        msg: msg_in_chat,
+        date: date_in_chat,
+      });
+      save_msg.save((err, result) => {
+        if (err) throw err;
+        console.log(result);
+        msg_room_2.push(result);
+        io.emit("msg_room", result);
+      });
     } else {
       if (data.MSG_ID in RECV_BUFF[data.FROM]) {
         RECV_BUFF[data.FROM][data.MSG_ID].push(data);
@@ -379,7 +397,7 @@ function bcastServer() {
     msg: {
       MSG_ID: nextMSG_ID(),
       FLAG: "ECHO",
-      SERVER_NAME: "SERVER A",
+      SERVER_NAME: "SERVER B",
     },
   };
   TO_SEND_BUFF.push(msg);
@@ -413,7 +431,7 @@ function sendToSerial() {
     }
   } else if (!isFree) {
     console.log("ESP32 is not ready", TO_SEND_BUFF.length, "message in queue");
-    PORT.flush()
+    PORT.flush();
   }
 }
 
