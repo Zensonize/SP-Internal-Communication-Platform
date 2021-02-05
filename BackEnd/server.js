@@ -1,7 +1,7 @@
 var app = require("express")();
-
+var config = require("./config");
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "http://localhost:3000");
+  res.header("Access-Control-Allow-Origin", config.host);
   res.header(
     "Access-Control-Allow-Methods",
     "POST, GET, PUT, PATCH, DELETE, OPTIONS"
@@ -16,9 +16,10 @@ app.use((req, res, next) => {
 app.get("/", function (req, res) {
   res.render("/", { tile: "Emergency Chat System V1.1" });
 });
-// Default is localhost:3000 or localhost:8080
 var http = require("http").Server(app);
+
 var io = require("socket.io")(http);
+
 var mongoose = require("mongoose");
 let users = [];
 let messages = [];
@@ -30,9 +31,7 @@ const moment = require("moment");
 const { error } = require("console");
 moment.locale("th");
 
-
-
-mongoose.connect("mongodb://localhost:27017/chat", {
+mongoose.connect(config.db, {
   auth: {
     authSource: "admin",
   },
@@ -231,6 +230,6 @@ io.on("connection", (socket) => {
   });
 });
 
-http.listen(process.env.PORT || 3000, () => {
-  console.log("Listening on port %s", process.env.PORT || 3000);
+http.listen(process.env.PORT || config.port, () => {
+  console.log("Listening on port %s", process.env.PORT || config.port);
 });
