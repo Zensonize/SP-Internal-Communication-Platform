@@ -299,9 +299,14 @@ const handler = {
       if (recentSend.retires >= 3) {
         console.error("ESP failed to send", recentSend.msg.MSG_ID);
       } else {
+        console.log('ESP will retires to send within', TO_SEND_BUFF.length)
         TO_SEND_BUFF.push(recentSend);
         sendToSerial();
       }
+    }
+    else {
+      console.log('ESP is ready to send next')
+      sendToSerial()
     }
   },
   ACK: function (data) {
@@ -408,6 +413,7 @@ function sendToSerial() {
     }
   } else if (!isFree) {
     console.log("ESP32 is not ready", TO_SEND_BUFF.length, "message in queue");
+    PORT.flush()
   }
 }
 
