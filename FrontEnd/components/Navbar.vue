@@ -133,6 +133,8 @@ import io from "socket.io-client";
 import Vuex from "vuex";
 import Vue from "vue";
 import Changelog from "@/components/navbar/Changelog";
+import config from "@/store/config"
+
 Vue.use(Vuex);
 
 export default Vue.extend({
@@ -188,7 +190,7 @@ export default Vue.extend({
       /** Room **/
       Create_room: "",
       /** Room **/
-      socket: io("http://127.0.0.1:3000"), // this IP can be changeable
+      socket: io(config.host), // this IP can be changeable
       selected: null,
       options: [{ value: null, text: "Click to select chat room" }]
     };
