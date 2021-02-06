@@ -4,6 +4,7 @@
 #define   MESH_PREFIX     "IPHC"
 #define   MESH_PASSWORD   "ThisPasswordIsHidden"
 #define   MESH_PORT       5555
+#define   ONBOARD_LED     2
 
 Scheduler userScheduler; // to control your personal task
 painlessMesh  mesh;
@@ -18,9 +19,11 @@ void sendACK(uint32_t to, int msgID, int fragID) {
 }
 
 void receivedCallback( uint32_t from, String &msg ) {
+  digitalWrite(ONBOARD_LED,HIGH);
   JSONVar recv = JSON.parse(msg.c_str());
   recv["recvTime"] = String(mesh.getNodeTime());
   recv["FROM"] =  String(from);
+  recv["HEAP"] = String(ESP.getFreeHeap());
 
   String flag = (const char*) recv["FLAG"];
   if (flag.equals("DATA")){
@@ -32,6 +35,7 @@ void receivedCallback( uint32_t from, String &msg ) {
     }
   }
   Serial.println(JSON.stringify(recv));
+  digitalWrite(ONBOARD_LED,LOW);
 }
 
 void newConnectionCallback(uint32_t nodeId) {
@@ -74,6 +78,7 @@ void handleSerialInput(String inData){
     JSONVar sentSuccess;
     sentSuccess["FLAG"] = "READY";
     sentSuccess["SUCCESS"] = true;
+    sentSuccess["HEAP"] = String(ESP.getFreeHeap());
     Serial.println(JSON.stringify(sentSuccess));
   }
   else {
@@ -90,9 +95,11 @@ void handleSerialInput(String inData){
     sentSuccess["FLAG"] = "READY";
     if(success){
       sentSuccess["SUCCESS"] = true;
+      sentSuccess["HEAP"] = String(ESP.getFreeHeap());
     }
     else {
       sentSuccess["SUCCESS"] = false;
+      sentSuccess["HEAP"] = String(ESP.getFreeHeap());
     }
     Serial.println(JSON.stringify(sentSuccess));
   }
@@ -100,7 +107,7 @@ void handleSerialInput(String inData){
 }
 
 void setup() {
-
+  pinMode(ONBOARD_LED,OUTPUT);
   Serial.begin(921600);
   Serial.setRxBufferSize(1400);
 
