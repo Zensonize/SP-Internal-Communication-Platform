@@ -243,7 +243,8 @@ function sendData(data) {
         }
         Object.keys(SERVER_LIST).forEach((key, index) => {
             msg.msg.FRAG_ID = 0;
-            msg.msg.TOA, msg.msg.TOB = convertDstAddr(key);
+            msg.msg.TOA = convertDstAddr(key)[0];
+            msg.msg.TOB = convertDstAddr(key)[1];
             msg.msg.MSG_ID = nextMSG_ID();
 
             for (const [i, frag] of dataFrag.entries()) {
@@ -266,7 +267,8 @@ function sendData(data) {
             }
         }
         Object.keys(SERVER_LIST).forEach((key, index) => {
-            msg.msg.TOA, msg.msg.TOB = convertDstAddr(key);
+            msg.msg.TOA = convertDstAddr(key)[0];
+            msg.msg.TOB = convertDstAddr(key)[1];
             msg.msg.MSG_ID = nextMSG_ID();
             TO_SEND_BUFF.push(msg);
             sendToSerial();
@@ -284,7 +286,7 @@ function convertDstAddr(dst) {
     toA = parseInt(dst.slice(0,lenA));
     toB = parseInt(dst.slice(-5));
 
-    return toA, toB
+    return [toA, toB]
 }
 
 function chunkSubstr(str, size) {
