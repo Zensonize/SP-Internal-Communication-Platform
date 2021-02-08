@@ -14,6 +14,7 @@ void sendACK(uint32_t to, int msgID, int fragID) {
   ackMSG["FLAG"] = "ACK";
   ackMSG["ACK_MSG_ID"] = msgID;
   ackMSG["ACK_FRAG_ID"] = fragID;
+  ackMSG["sendTime"] = String(mesh.getNodeTime());
 
   mesh.sendSingle(to, JSON.stringify(ackMSG));
 }
