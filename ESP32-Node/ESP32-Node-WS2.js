@@ -373,7 +373,7 @@ app.post('/longChat', function(req, res) {
 //function for logging data
 const createCSVWriter_SEND = require('csv-writer').createObjectCsvWriter;
 const csvWriter_SEND = createCSVWriter_SEND({
-  path: 'log/10-MM_SEND_SERVERB.csv',
+  path: 'log/15-MM_SEND_SERVERB.csv',
   header: [
     {id: 'MSG_ID', title: 'MSG_ID'},
     {id: 'FRAG_ID', title: 'FRAG_ID'},
@@ -390,7 +390,7 @@ const csvWriter_SEND = createCSVWriter_SEND({
 
 const createCSVWriter_RECV = require('csv-writer').createObjectCsvWriter;
 const csvWriter_RECV = createCSVWriter_RECV({
-  path: 'log/10-MM_RECV_SERVERB.csv',
+  path: 'log/15-MM_RECV_SERVERB.csv',
   header: [
     {id: 'MSG_ID', title: 'MSG_ID'},
     {id: 'FRAG_ID', title: 'FRAG_ID'},
