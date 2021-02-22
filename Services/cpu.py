@@ -83,7 +83,7 @@ while True:
     draw.text((x-40, top+8),     str(CPU), font=font, fill=255)
     # draw.text((x+4, top+8),     str("Boot Finished!"), font=font, fill=255)
     draw.text((x-2, top+16),    str(MemUsage),  font=font, fill=255)
-    draw.text((x-24, top+24),    str("CPU Temp: ")+str(tempC)+str("\u00b0")+str("C"),  font=font, fill=255)
+    draw.text((x-24, top+24),    str("CPU Temp: ")+str("{:.{}f}".format(tempC, 2))+str("\u00b0")+str("C"),  font=font, fill=255)
 
     # Display image.
     disp.image(image)
