@@ -13,5 +13,6 @@
 DATE_TIME=`date "+%Y/%m/%d-%H:%M:%S"`
 echo "Executed completed at : $DATE_TIME" >> /home/ubuntu/bootlog.txt
 
-sudo /home/ubuntu./fbcp-ili9341.sh
+sudo date --set=`ds1302_get_utc`
+sudo /home/ubuntu/./fbcp-ili9341.sh
 sudo /usr/bin/python3 /home/ubuntu/disp.py

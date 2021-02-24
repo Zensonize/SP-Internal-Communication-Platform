@@ -82,7 +82,8 @@ x = 0
 # Load a TTF font.  Make sure the .ttf font file is in the
 # same directory as the python script!
 # Some other nice fonts to try: http://www.dafont.com/bitmap.php
-font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 24)
+font = ImageFont.truetype("/home/ubuntu/font/THSARABUN.TTF",28)
+# font = ImageFont.truetype("/usr/share/fonts/truetype/quicksand/Quicksand-Medium.ttf", 24)
 
 count=0
 qry=''
@@ -90,32 +91,35 @@ qry=''
 ul=0.00
 dl=0.00
 t0 = time.time()
-upload=psutil.net_io_counters(pernic=True)['wlan0'][0]
-download=psutil.net_io_counters(pernic=True)['wlan0'][1]
+upload=psutil.net_io_counters(pernic=True)['wlx90f65201cf6f'][0]
+download=psutil.net_io_counters(pernic=True)['wlx90f65201cf6f'][1]
 up_down=(upload,download)
 
 
 while True:
     last_up_down = up_down
-    upload=psutil.net_io_counters(pernic=True)['wlan0'][0]
-    download=psutil.net_io_counters(pernic=True)['wlan0'][1]
+    upload=psutil.net_io_counters(pernic=True)['wlx90f65201cf6f'][0]
+    download=psutil.net_io_counters(pernic=True)['wlx90f65201cf6f'][1]
     t1 = time.time()
     up_down = (upload,download)
     
     # Draw a black filled box to clear the image.
     draw.rectangle((0, 0, width, height), outline=0, fill=0)
-
+    cpuFile = open('/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq')
+    cpu_freq = float(cpuFile.read())    
     # Shell scripts for system monitoring from here:
     # https://unix.stackexchange.com/questions/119126/command-to-display-memory-usage-disk-usage-and-cpu-load
     cmd = "hostname -I | cut -d' ' -f1"
     IP = "IP: " + subprocess.check_output(cmd, shell=True).decode("utf-8")
-    cmd = "top -bn1 | grep load | awk '{printf \"CPU Load: %.2f\", $(NF-2)}'"
+    cmd = "top -bn1 | grep load | awk '{printf \"CPU Load:%.2f% \", $(NF-2)}'"
     CPU = subprocess.check_output(cmd, shell=True).decode("utf-8")
     cmd = "free -m | awk 'NR==2{printf \"Mem: %s/%s MB \", $3,$2,$3*100/$2 }'"
     MemUsage = subprocess.check_output(cmd, shell=True).decode("utf-8")
-    cmd = 'df -h | awk \'$NF=="/"{printf "Disk: %d/%d GB  %s", $3,$2,$5}\''
-    Disk = subprocess.check_output(cmd, shell=True).decode("utf-8")
-    cmd = "cat /sys/class/thermal/thermal_zone0/temp |  awk '{printf \"CPU Temp: %.1f C\", $(NF-0) / 1000}'"  # pylint: disable=line-too-long
+    # cmd = 'df -h | awk \'$NF=="/"{printf "Disk: %d/%d GB  %s", $3,$2,$5}\''
+    # Disk = subprocess.check_output(cmd, shell=True).decode("utf-8")
+    cmd = "date"
+    Date = subprocess.check_output(cmd,shell=True).decode("utf-8")
+    cmd = "cat /sys/class/thermal/thermal_zone0/temp |  awk '{printf \"CPU Temp: %.1f °C\", $(NF-0) / 1000}'"  # pylint: disable=line-too-long
     Temp = subprocess.check_output(cmd, shell=True).decode("utf-8")
 
     # Write four lines of text.
@@ -127,9 +131,12 @@ while True:
     y += font.getsize(CPU)[1]
     draw.text((x, y), MemUsage, font=font, fill="#00FF00")
     y += font.getsize(MemUsage)[1]
-    draw.text((x, y), Disk, font=font, fill="#00FFFF")
-    y += font.getsize(Disk)[1]
+    # draw.text((x, y), Disk, font=font, fill="#00FFFF")
+    draw.text((x, y), Date, font=font, fill="#00FFFF")
+    y += font.getsize(Date)[1]
     draw.text((x, y), Temp, font=font, fill="#FF00FF")
+    y += font.getsize('CPU Clock: {:.{}f}'.format(cpu_freq/1000, 2) + 'MHz')[1]
+    draw.text((x,y), str('CPU Clock: '+ "{:.{}f}".format(cpu_freq/1000, 2)+ ' MHz'),font=font, fill="#FFFFFF")
 
     try:
         ul, dl = [(now - last) / (t1 - t0) / 1024.0
@@ -140,7 +147,7 @@ while True:
 
     y += font.getsize('Upload: {:0.2f} kB/s \n'.format(ul)+'Download: {:0.2f} kB/s'.format(dl))[1]
     draw.text((x,y), str('Upload: {:0.2f} kB/s \n'.format(ul)+'Download: {:0.2f} kB/s'.format(dl)), font=font, fill="#FF0000")
-
+    
     # Display image.
     disp.image(image)
     time.sleep(0.1)
