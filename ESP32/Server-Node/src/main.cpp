@@ -14,7 +14,6 @@ void sendACK(uint32_t to, int msgID, int fragID) {
   ackMSG["FLAG"] = "ACK";
   ackMSG["ACK_MSG_ID"] = msgID;
   ackMSG["ACK_FRAG_ID"] = fragID;
-  ackMSG["sendTime"] = String(mesh.getNodeTime());
 
   mesh.sendSingle(to, JSON.stringify(ackMSG));
 }
@@ -22,7 +21,6 @@ void sendACK(uint32_t to, int msgID, int fragID) {
 void receivedCallback( uint32_t from, String &msg ) {
   digitalWrite(ONBOARD_LED,HIGH);
   JSONVar recv = JSON.parse(msg.c_str());
-  recv["recvTime"] = String(mesh.getNodeTime());
   recv["FROM"] =  String(from);
   recv["HEAP"] = String(ESP.getFreeHeap());
 
