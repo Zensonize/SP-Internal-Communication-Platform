@@ -224,8 +224,12 @@ io.on("connection", (socket) => {
         console.log(result);
         msg_room_2.push(result);
         io.to(room).emit("msg_room", result);
+
+        let msgtoSync = result;
+        msgtoSync['FLAG'] = 'msg';
+
         setTimeout(() => {
-          sendData(result, 'ALL');
+          sendData(msgtoSync, 'ALL');
         }, 750);
       });
     });
@@ -276,9 +280,23 @@ parser.on("data", (data) => {
 
 //const for local operation
 let MSG_ID = 0;
-let SERVER_LIST = {};
-let NODE_LIST = [];
+let ALL_SERVER_LIST = [];
+let ALL_NODE_LIST = [];
 let TOPOLOGY = {};
+
+NodeSchema.find({},{nodeID: 1, _id: 0},(err,result) => {
+  if (err) throw err;
+  result.map(({ nodeID }) => nodeID ).forEach((element) => { ALL_NODE_LIST.push(element)})
+
+  console.log('ALL NODE', ALL_NODE_LIST)
+});
+
+NodeSchema.find({isServer: true}, (err,result) => {
+  if (err) throw err;
+  ALL_SERVER_LIST = result
+
+  console.log('ALL SERVER', ALL_SERVER_LIST);
+});
 
 //variable for flow control
 let TO_SEND_BUFF = [];
@@ -328,6 +346,13 @@ const handler = {
       if (data.ACK_FRAG_ID == -1 && data.ACK_MSG_ID == msg.msg.MSG_ID) {
         console.log("ACK", data.ACK_MSG_ID, "RTT", Date.now() - msg.timeSent);
         SENT_BUFF.splice(i, 1);
+
+        //tag db that this message is sent
+        originalData = json.parse(msg.msg.DATA);
+        if (originalData.FLAG === 'msg') {
+
+        }
+
         break;
       } else if (
         data.ACK_FRAG_ID == msg.msg.FRAG_ID &&
@@ -351,6 +376,14 @@ const handler = {
     TOPOLOGY = data.TOPOLOGY;
 
     Object.keys(SERVER_LIST).forEach((key, index) => {
+      //query list of server
+      NodeSchema.find({
+        nodeID: key
+      }, (err, result) => {
+        if (err) throw err;
+        
+      });
+
       if (!NODE_LIST.includes(key)) {
         SERVER_LIST[key].SERVER_STATUS = "OFFLINE";
       }
@@ -364,40 +397,42 @@ const handler = {
       console.log("send msg to: ",present_room_id)
       var extract_json_obj = JSON.parse(data.DATA)
       // console.log(extract_json_obj)
-      let message = mongoose.model(present_room_id, chatschema);
-      let u_name_in_chat = extract_json_obj.username
-      let msg_in_chat = extract_json_obj.msg
-      let date_in_chat = extract_json_obj.date
-      let room_in_chat = extract_json_obj.room
-      if(room_in_chat !== present_room_id){
-        console.log("mismatch room")
-        console.log(`user is: ${u_name_in_chat} msg is: ${msg_in_chat}
-        date is: ${date_in_chat} room is: ${room_in_chat} `)
-        let message = mongoose.model(room_in_chat, chatschema);
-        let save_msg = new message({
-          username: u_name_in_chat,
-          msg: msg_in_chat,
-          date: date_in_chat,
-        });
-          save_msg.save((err, result) => {
-            if (err) throw err;
-            // console.log(result);
-            msg_room_2.push(result);
-            io.to(room_in_chat).emit("msg_room", result);
+      if (extract_json_obj.FLAG === 'msg') {
+        let message = mongoose.model(present_room_id, chatschema);
+        let u_name_in_chat = extract_json_obj.username
+        let msg_in_chat = extract_json_obj.msg
+        let date_in_chat = extract_json_obj.date
+        let room_in_chat = extract_json_obj.room
+        if(room_in_chat !== present_room_id){
+          console.log("mismatch room")
+          console.log(`user is: ${u_name_in_chat} msg is: ${msg_in_chat}
+          date is: ${date_in_chat} room is: ${room_in_chat} `)
+          let message = mongoose.model(room_in_chat, chatschema);
+          let save_msg = new message({
+            username: u_name_in_chat,
+            msg: msg_in_chat,
+            date: date_in_chat,
           });
-      }
-      else{
-        let save_msg = new message({
-          username: u_name_in_chat,
-          msg: msg_in_chat,
-          date: date_in_chat,
-        });
-          save_msg.save((err, result) => {
-            if (err) throw err;
-            // console.log(result);
-            msg_room_2.push(result);
-            io.to(present_room_id).emit("msg_room", result);
+            save_msg.save((err, result) => {
+              if (err) throw err;
+              // console.log(result);
+              msg_room_2.push(result);
+              io.to(room_in_chat).emit("msg_room", result);
+            });
+        }
+        else{
+          let save_msg = new message({
+            username: u_name_in_chat,
+            msg: msg_in_chat,
+            date: date_in_chat,
           });
+            save_msg.save((err, result) => {
+              if (err) throw err;
+              // console.log(result);
+              msg_room_2.push(result);
+              io.to(present_room_id).emit("msg_room", result);
+            });
+        }
       }
       
     } else {
@@ -562,16 +597,20 @@ function sendData(data, dest) {
   if (dataStr.length > config.MTU) {
     //send data in fragment
     if (dest == 'ALL'){
-      Object.keys(SERVER_LIST).forEach((key, index) => {
-        sendFragment(dataStr, key);
+      ALL_SERVER_LIST.forEach(server => {
+        if (server.nodeStatus === 'ONLINE') {
+          sendFragment(dataStr, server.nodeID)
+        }
       });
     } else {
       sendFragment(dataStr, dest);
     }
   } else {
     if (dest == 'ALL'){
-      Object.keys(SERVER_LIST).forEach((key, index) => {
-        sendSingle(dataStr, key);
+      ALL_SERVER_LIST.forEach(server => {
+        if (server.nodeStatus === 'ONLINE') {
+          sendSingle(dataStr, server.nodeID)
+        }
       });
     } else {
       sendSingle(dataStr, dest)
