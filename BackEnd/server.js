@@ -55,11 +55,20 @@ var chatschema = mongoose.Schema({
   msg: String,
   date: String,
   room: String,
+  synced: [{type: String}]
 });
 
 var RoomModel = mongoose.Schema({
   RoomID: String,
+  synced: [{type: String}]
 });
+
+var NodeSchema = mongoose.Schema({
+  nodeID: String,
+  isServer: Boolean,
+  nodeName: String,
+  nodeStatus: String
+})
 
 var room_list = mongoose.model("room_list", RoomModel);
 room_list.find({}, { RoomID: 1, _id: 0 }, (err, result) => {
@@ -74,6 +83,7 @@ room_list.find({}, { RoomID: 1, _id: 0 }, (err, result) => {
 const userRegister = mongoose.Schema({
   registername: String,
   password: String,
+  synced: [{type: String}]
 });
 
 var userDataModel = mongoose.model("user_register", userRegister);
@@ -215,7 +225,7 @@ io.on("connection", (socket) => {
         msg_room_2.push(result);
         io.to(room).emit("msg_room", result);
         setTimeout(() => {
-          sendData(result);
+          sendData(result, 'ALL');
         }, 750);
       });
     });
@@ -499,52 +509,73 @@ function msgTimeout() {
   }
 }
 
-function sendData(data) {
+function sendFragment(dataStr, dest) {
+
+  dataFrag = chunkSubstr(dataStr, config.MTU);
+
+  msg = {
+    retires: 0,
+    timedout: 0,
+    to: dest,
+    msg: {
+      MSG_ID: nextMSG_ID(),
+      FLAG: "DATA",
+      FRAG: true,
+      FRAG_ID: 0,
+      FRAG_LEN: dataFrag.length,
+      TOA: convertDstAddr(dest)[0],
+      TOB: convertDstAddr(dest)[1]
+    },
+  };
+
+  for (const [i, frag] of dataFrag.entries()) {
+    msg.msg.DATA = frag;
+    msg.msg.FRAG_ID = msg.msg.FRAG_ID++;
+
+    TO_SEND_BUFF.push(msg);
+    sendToSerial();
+  }
+}
+
+function sendSingle(dataStr, dest) {
+  msg = {
+    retires: 0,
+    timedout: 0,
+    to: dest,
+    msg: {
+      MSG_ID: nextMSG_ID(),
+      FLAG: "DATA",
+      FRAG: false,
+      DATA: dataStr,
+      TOA: convertDstAddr(dest)[0],
+      TOB: convertDstAddr(dest)[1]
+    },
+  };
+
+  TO_SEND_BUFF.push(msg);
+  sendToSerial();
+}
+
+function sendData(data, dest) {
   dataStr = JSON.stringify(data);
 
   if (dataStr.length > config.MTU) {
     //send data in fragment
-    dataFrag = chunkSubstr(dataStr, config.MTU);
-    msg = {
-      retires: 0,
-      timedout: 0,
-      msg: {
-        FLAG: "DATA",
-        FRAG: true,
-        FRAG_LEN: dataFrag.length,
-      },
-    };
-    Object.keys(SERVER_LIST).forEach((key, index) => {
-      msg.msg.FRAG_ID = 0;
-      msg.msg.TOA = convertDstAddr(key)[0];
-      msg.msg.TOB = convertDstAddr(key)[1];
-      msg.msg.MSG_ID = nextMSG_ID();
-
-      for (const [i, frag] of dataFrag.entries()) {
-        msg.msg.DATA = frag;
-        msg.msg.FRAG_ID = msg.msg.FRAG_ID++;
-
-        TO_SEND_BUFF.push(msg);
-        sendToSerial();
-      }
-    });
+    if (dest == 'ALL'){
+      Object.keys(SERVER_LIST).forEach((key, index) => {
+        sendFragment(dataStr, key);
+      });
+    } else {
+      sendFragment(dataStr, dest);
+    }
   } else {
-    msg = {
-      retires: 0,
-      timedout: 0,
-      msg: {
-        FLAG: "DATA",
-        FRAG: false,
-        DATA: dataStr,
-      },
-    };
-    Object.keys(SERVER_LIST).forEach((key, index) => {
-      msg.msg.TOA = convertDstAddr(key)[0];
-      msg.msg.TOB = convertDstAddr(key)[1];
-      msg.msg.MSG_ID = nextMSG_ID();
-      TO_SEND_BUFF.push(msg);
-      sendToSerial();
-    });
+    if (dest == 'ALL'){
+      Object.keys(SERVER_LIST).forEach((key, index) => {
+        sendSingle(dataStr, key);
+      });
+    } else {
+      sendSingle(dataStr, dest)
+    }
   }
 }
 
