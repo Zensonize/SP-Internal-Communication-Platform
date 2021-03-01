@@ -22,7 +22,6 @@ var io = require("socket.io")(http);
 
 var mongoose = require("mongoose");
 let users = [];
-let messages = [];
 let msg_room_2 = [];
 var room_lists = [];
 var lists = [];
@@ -58,10 +57,12 @@ var chatschema = mongoose.Schema({
   synced: [{type: String}]
 });
 
-var RoomModel = mongoose.Schema({
+var RoomSchema = mongoose.Schema({
   RoomID: String,
   synced: [{type: String}]
 });
+
+var room_list = mongoose.model("room_list", RoomSchema);
 
 var NodeSchema = mongoose.Schema({
   nodeID: String,
@@ -70,7 +71,6 @@ var NodeSchema = mongoose.Schema({
   nodeStatus: String
 })
 
-var room_list = mongoose.model("room_list", RoomModel);
 room_list.find({}, { RoomID: 1, _id: 0 }, (err, result) => {
   result
     .map(({ RoomID }) => RoomID)
