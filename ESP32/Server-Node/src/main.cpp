@@ -126,7 +126,7 @@ void handleSerialInput(String inData){
 void backendInit(){
   JSONVar sysinit;
   sysinit["FLAG"] = "INIT";
-  sysinit["NODE_ID"] = mesh.getNodeId();
+  sysinit["NODE_ID"] = String(mesh.getNodeId());
 
   Serial.println(JSON.stringify(sysinit));
 }
