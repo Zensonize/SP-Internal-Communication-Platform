@@ -67,8 +67,7 @@ var room_list = mongoose.model("room_list", RoomSchema);
 var NodeSchema = mongoose.Schema({
   nodeID: String,
   isServer: Boolean,
-  nodeName: String,
-  nodeStatus: String
+  nodeName: String
 })
 
 room_list.find({}, { RoomID: 1, _id: 0 }, (err, result) => {
@@ -280,23 +279,11 @@ parser.on("data", (data) => {
 
 //const for local operation
 let MSG_ID = 0;
-let ALL_SERVER_LIST = [];
-let ALL_NODE_LIST = [];
+let ALL_SERVER = {};
+let ALL_NODE = {};
 let TOPOLOGY = {};
 
-NodeSchema.find({},{nodeID: 1, _id: 0},(err,result) => {
-  if (err) throw err;
-  result.map(({ nodeID }) => nodeID ).forEach((element) => { ALL_NODE_LIST.push(element)})
-
-  console.log('ALL NODE', ALL_NODE_LIST)
-});
-
-NodeSchema.find({isServer: true}, (err,result) => {
-  if (err) throw err;
-  ALL_SERVER_LIST = result
-
-  console.log('ALL SERVER', ALL_SERVER_LIST);
-});
+initNodeList()
 
 //variable for flow control
 let TO_SEND_BUFF = [];
@@ -307,21 +294,25 @@ let timeoutRoutine = null;
 
 const handler = {
   ECHO: function (data) {
-    if (data.FROM in SERVER_LIST) {
-      if (SERVER_LIST[data.FROM].SERVER_STATUS === "OFFLINE") {
-        console.warn(
-          "Server",
-          SERVER_LIST[data.FROM].SERVER_NAME,
-          "back online"
-        );
+    if (data.FROM in ALL_SERVER) {
+      if (ALL_SERVER[data.FROM].status === 'OFFLINE') {
+        console.warn("Server", ALL_SERVER[data.FROM].name, "back online");
       }
-      SERVER_LIST[data.FROM].SERVER_STATUS = "ONLINE";
+      ALL_SERVER[data.FROM].status = "ONLINE";
     } else {
-      SERVER_LIST[data.FROM] = {};
-      SERVER_LIST[data.FROM].SERVER_NAME = data.SERVER_NAME;
-      SERVER_LIST[data.FROM].SERVER_STATUS = "ONLINE";
-      console.log("added new server", SERVER_LIST[data.FROM].SERVER_NAME);
+      ALL_SERVER[data.FROM] = {};
+      ALL_SERVER[data.FROM].name = data.SERVER_NAME;
+      ALL_SERVER[data.FROM].status = "ONLINE";
+      console.log("added new server", ALL_SERVER[data.FROM].name);
       RECV_BUFF[data.FROM] = {};
+
+      NodeSchema.updateOne({nodeID: data.FROM}, {
+        isServer: true,
+        nodeName: data.SERVER_NAME
+      }, (err, result) => {
+        if (err) throw err;
+        console.log(result);
+      });
     }
   },
   READY: function (data) {
@@ -375,18 +366,49 @@ const handler = {
     NODE_LIST = data.NODE_LIST;
     TOPOLOGY = data.TOPOLOGY;
 
-    Object.keys(SERVER_LIST).forEach((key, index) => {
-      //query list of server
-      NodeSchema.find({
-        nodeID: key
-      }, (err, result) => {
-        if (err) throw err;
-        
-      });
-
-      if (!NODE_LIST.includes(key)) {
-        SERVER_LIST[key].SERVER_STATUS = "OFFLINE";
+    //update status of the node
+    ALL_NODE.forEach((value, key) => {
+      if (NODE_LIST.includes(key)) {
+        if (value[status] === 'OFFLINE') {
+          if (ALL_SERVER.includes(key)){
+            ALL_SERVER[key].status = 'ONLINE';
+            console.log('notice: server', key, ALL_SERVER[key].name, 'back online');
+          }
+          else {
+            console.log('notice: node', key, 'back online');
+          }
+        }
+        ALL_NODE[key].status = 'ONLINE';
+        NODE_LIST.splice(NODE_LIST.indexOf(key), 1);
       }
+      else {
+        if (value[status] === 'ONLINE') {
+          if (ALL_SERVER.includes(key)){
+            ALL_SERVER[key].status = 'OFFLINE';
+            console.log('notice: server', key, ALL_SERVER[key].name, 'went offline');
+          }
+          else {
+            console.log('notice: node', key, 'went offline');
+          }
+        }
+        ALL_NODE[key].status = 'OFFLINE';
+      }
+    });
+
+    //add new node to database
+    Object.keys(NODE_LIST).forEach((key, index) => {
+      ALL_NODE[key] = {
+        status: 'ONLINE'
+      }
+      let new_node = new NodeSchema({
+        nodeID: key,
+        isServer: false,
+        nodeName: ""
+      })
+      new_node.save((err, result) => {
+        if (err) throw err;
+        console.log(result);
+      })
     });
     bcastServer();
   },
@@ -640,4 +662,36 @@ function chunkSubstr(str, size) {
   }
 
   return chunks;
+}
+
+function initNodeList() {
+  NodeSchema.find({},{nodeID: 1, _id: 0},(err,result) => {
+    if (err) throw err;
+    NODE_LIST = []
+    result.map(({ nodeID }) => nodeID ).forEach((element) => { NODE_LIST.push(element)})
+    
+    Object.keys(NODE_LIST).forEach((key, index) => {
+      ALL_NODE[key] = {
+        status: 'OFFLINE'
+      }
+    });
+
+    console.log('NODE LIST', NODE_LIST)
+    console.log('ALL NODE', ALL_NODE)
+  });
+  
+  NodeSchema.find({isServer: true}, (err,result) => {
+    if (err) throw err;
+    SERVER_LIST = result;
+
+    Object.keys(SERVER_LIST).forEach((key, index) => {
+      ALL_SERVER[key.nodeID] = {
+        status: 'OFFLINE',
+        name: key.nodeName
+      }
+    })
+
+    console.log('SERVER LIST', SERVER_LIST);
+    console.log('ALL SERVER', ALL_SERVER);
+  });
 }
