@@ -69,40 +69,58 @@ void handleSerialInput(String inData){
   JSONVar dataObject = JSON.parse(inDataArr);
   dataObject["sendTime"] = String(mesh.getNodeTime());
 
-  String flag = (const char*) dataObject["FLAG"];
-  if ( flag.equals("ECHO")) {
-    // Serial.print("broadcasting Echo");
-    // Serial.println(JSON.stringify(dataObject));
-    mesh.sendBroadcast(JSON.stringify(dataObject));
-    JSONVar sentSuccess;
-    sentSuccess["FLAG"] = "READY";
+  // String flag = (const char*) dataObject["FLAG"];
+  // if ( flag.equals("ECHO")) {
+  //   // Serial.print("broadcasting Echo");
+  //   // Serial.println(JSON.stringify(dataObject));
+  //   mesh.sendBroadcast(JSON.stringify(dataObject));
+  //   JSONVar sentSuccess;
+  //   sentSuccess["FLAG"] = "READY";
+  //   sentSuccess["SUCCESS"] = true;
+  //   sentSuccess["HEAP"] = String(ESP.getFreeHeap());
+  //   Serial.println(JSON.stringify(sentSuccess));
+  // }
+  // else {
+  //   // String to = (const char*) dataObject["TO"];
+  //   // int to_int = to.toInt();
+  //   int toA_int = (int) dataObject["TOA"];
+  //   int toB_int = (int) dataObject["TOB"];
+  //   uint32_t toA_uint = (uint32_t) toA_int;
+  //   uint32_t toB_uint = (uint32_t) toB_int;
+  //   uint32_t to = (toA_uint * 100000) + toB_uint;
+
+  //   bool success = mesh.sendSingle(to, JSON.stringify(dataObject));
+  //   JSONVar sentSuccess;
+  //   sentSuccess["FLAG"] = "READY";
+  //   if(success){
+  //     sentSuccess["SUCCESS"] = true;
+  //     sentSuccess["HEAP"] = String(ESP.getFreeHeap());
+  //   }
+  //   else {
+  //     sentSuccess["SUCCESS"] = false;
+  //     sentSuccess["HEAP"] = String(ESP.getFreeHeap());
+  //   }
+  //   Serial.println(JSON.stringify(sentSuccess));
+  // }
+  
+  int toA_int = (int) dataObject["TOA"];
+  int toB_int = (int) dataObject["TOB"];
+  uint32_t toA_uint = (uint32_t) toA_int;
+  uint32_t toB_uint = (uint32_t) toB_int;
+  uint32_t to = (toA_uint * 100000) + toB_uint;
+
+  bool success = mesh.sendSingle(to, JSON.stringify(dataObject));
+  JSONVar sentSuccess;
+  sentSuccess["FLAG"] = "READY";
+  if(success){
     sentSuccess["SUCCESS"] = true;
     sentSuccess["HEAP"] = String(ESP.getFreeHeap());
-    Serial.println(JSON.stringify(sentSuccess));
   }
   else {
-    // String to = (const char*) dataObject["TO"];
-    // int to_int = to.toInt();
-    int toA_int = (int) dataObject["TOA"];
-    int toB_int = (int) dataObject["TOB"];
-    uint32_t toA_uint = (uint32_t) toA_int;
-    uint32_t toB_uint = (uint32_t) toB_int;
-    uint32_t to = (toA_uint * 100000) + toB_uint;
-
-    bool success = mesh.sendSingle(to, JSON.stringify(dataObject));
-    JSONVar sentSuccess;
-    sentSuccess["FLAG"] = "READY";
-    if(success){
-      sentSuccess["SUCCESS"] = true;
-      sentSuccess["HEAP"] = String(ESP.getFreeHeap());
-    }
-    else {
-      sentSuccess["SUCCESS"] = false;
-      sentSuccess["HEAP"] = String(ESP.getFreeHeap());
-    }
-    Serial.println(JSON.stringify(sentSuccess));
+    sentSuccess["SUCCESS"] = false;
+    sentSuccess["HEAP"] = String(ESP.getFreeHeap());
   }
-  
+  Serial.println(JSON.stringify(sentSuccess));
 }
 
 void setup() {
