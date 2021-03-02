@@ -522,6 +522,8 @@ function echoServer(dest) {
       TOB: convertDstAddr(dest)[1]
     }
   }
+  TO_SEND_BUFF.push(msg);
+  sendToSerial();
 }
 
 function nextMSG_ID() {
