@@ -64,7 +64,7 @@ var RoomSchema = mongoose.Schema({
 
 var room_list = mongoose.model("room_list", RoomSchema);
 
-var NodeSchema = mongoose.Schema({
+const NodeSchema = mongoose.Schema({
   nodeID: String,
   isServer: Boolean,
   nodeName: String
@@ -284,6 +284,7 @@ let MSG_ID = 0;
 let ALL_SERVER = {};
 let ALL_NODE = {};
 let TOPOLOGY = {};
+let selfID = "";
 
 initNodeList()
 
@@ -308,7 +309,7 @@ const handler = {
       console.log("added new server", ALL_SERVER[data.FROM].name);
       RECV_BUFF[data.FROM] = {};
 
-      NodeSchema.updateOne({nodeID: data.FROM}, {
+      NodeSchema_list.updateOne({nodeID: data.FROM}, {
         isServer: true,
         nodeName: data.SERVER_NAME
       }, (err, result) => {
@@ -341,7 +342,7 @@ const handler = {
         SENT_BUFF.splice(i, 1);
 
         //tag db that this message is sent
-        originalData = json.parse(msg.msg.DATA);
+        originalData = JSON.parse(msg.msg.DATA);
         if (originalData.FLAG === 'msg') {
 
         }
@@ -365,11 +366,14 @@ const handler = {
     }
   },
   CHANGED_CONNECTION: function (data) {
-    NODE_LIST = data.NODE_LIST;
-    TOPOLOGY = data.TOPOLOGY;
+    NODE_LIST = data.NODE_LIST.split(',');
+    TOPOLOGY = JSON.parse(data.TOPOLOGY_JSON);
+    console.log(TOPOLOGY)
+    NODE_LIST.splice(NODE_LIST.indexOf(selfID), 1);
 
     //update status of the node
-    ALL_NODE.forEach((value, key) => {
+    Object.keys(ALL_NODE).forEach((key, value) => {
+      console.log("ALL NODE: key", key, "Value",value)
       if (NODE_LIST.includes(key)) {
         if (value[status] === 'OFFLINE') {
           if (ALL_SERVER.includes(key)){
@@ -398,14 +402,16 @@ const handler = {
     });
 
     //add new node to database
-    Object.keys(NODE_LIST).forEach((key, index) => {
+    Object.keys(NODE_LIST).forEach((index, key) => {
+      console.log("index:", index, "Key:",key)
       ALL_NODE[key] = {
         status: 'ONLINE'
       }
-      let new_node = new NodeSchema({
+      let new_node = new NodeSchema_list({
         nodeID: key,
         isServer: false,
-        nodeName: ""
+        nodeName: "",
+
       })
       new_node.save((err, result) => {
         if (err) throw err;
@@ -485,6 +491,11 @@ const handler = {
       }
     }
   },
+  INIT: function (data) {
+    console.log(data)
+    selfID = data.NODE_ID;
+    console.log("INIT SELF ID", selfID);
+  }
 };
 
 function bcastServer() {
@@ -663,9 +674,10 @@ function serialHandler(data) {
 }
 
 function convertDstAddr(dst) {
+  console.log(typeof(dst))
   var lenA = dst.length - 5;
-  toA = parseInt(dst.slice(0, lenA));
-  toB = parseInt(dst.slice(-5));
+  toA = parseInt(dst.splice(0, lenA));
+  toB = parseInt(dst.splice(-5));
 
   return [toA, toB];
 }
@@ -683,6 +695,7 @@ function chunkSubstr(str, size) {
 
 function initNodeList() {
   NodeSchema_list.find({},{nodeID: 1, _id: 0},(err,result) => {
+    console.log("data from node schema",result)
     if (err) throw err;
     NODE_LIST = []
     result.map(({ nodeID }) => nodeID ).forEach((element) => { NODE_LIST.push(element)})
