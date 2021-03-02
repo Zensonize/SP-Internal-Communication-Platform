@@ -284,6 +284,7 @@ let MSG_ID = 0;
 let ALL_SERVER = {};
 let ALL_NODE = {};
 let TOPOLOGY = {};
+let selfID = "";
 
 initNodeList()
 
@@ -367,6 +368,8 @@ const handler = {
   CHANGED_CONNECTION: function (data) {
     NODE_LIST = data.NODE_LIST;
     TOPOLOGY = data.TOPOLOGY;
+    
+    NODE_LIST.splice(NODE_LIST.indexOf(selfID), 1);
 
     //update status of the node
     ALL_NODE.forEach((value, key) => {
@@ -485,6 +488,10 @@ const handler = {
       }
     }
   },
+  INIT: function (data) {
+    selfID = data.NODE_ID;
+    console.log("INIT SELF ID", selfID);
+  }
 };
 
 function bcastServer() {
