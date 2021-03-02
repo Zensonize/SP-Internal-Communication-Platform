@@ -366,8 +366,8 @@ const handler = {
     }
   },
   CHANGED_CONNECTION: function (data) {
-    NODE_LIST = data.NODE_LIST;
-    TOPOLOGY = data.TOPOLOGY;
+    NODE_LIST = data.NODE_LIST.split(',');
+    TOPOLOGY = json.parse(data.TOPOLOGY_JSON);
 
     NODE_LIST.splice(NODE_LIST.indexOf(selfID), 1);
 
