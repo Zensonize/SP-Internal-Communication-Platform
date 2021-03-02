@@ -70,6 +70,8 @@ var NodeSchema = mongoose.Schema({
   nodeName: String
 })
 
+var NodeSchema_list = mongoose.model("NodeSchema_list",NodeSchema);
+
 room_list.find({}, { RoomID: 1, _id: 0 }, (err, result) => {
   result
     .map(({ RoomID }) => RoomID)
@@ -680,7 +682,7 @@ function chunkSubstr(str, size) {
 }
 
 function initNodeList() {
-  NodeSchema.find({},{nodeID: 1, _id: 0},(err,result) => {
+  NodeSchema_list.find({},{nodeID: 1, _id: 0},(err,result) => {
     if (err) throw err;
     NODE_LIST = []
     result.map(({ nodeID }) => nodeID ).forEach((element) => { NODE_LIST.push(element)})
@@ -695,7 +697,7 @@ function initNodeList() {
     console.log('ALL NODE', ALL_NODE)
   });
   
-  NodeSchema.find({isServer: true}, (err,result) => {
+  NodeSchema_list.find({isServer: true}, (err,result) => {
     if (err) throw err;
     SERVER_LIST = result;
 
