@@ -409,8 +409,10 @@ const handler = {
         if (err) throw err;
         console.log(result);
       })
+
+      echoServer(key);
     });
-    bcastServer();
+    // bcastServer();
   },
   DATA: function (data) {
     if (!data.FRAG) {
@@ -494,6 +496,19 @@ function bcastServer() {
   };
   TO_SEND_BUFF.push(msg);
   sendToSerial();
+}
+
+function echoServer(dest) {
+  msg = {
+    retires: 0,
+    msg: {
+      MSG_ID: nextMSG_ID(),
+      FLAG: "ECHO",
+      SERVER_NAME: "SERVER A",
+      TOA: convertDstAddr(dest)[0],
+      TOB: convertDstAddr(dest)[1]
+    }
+  }
 }
 
 function nextMSG_ID() {
