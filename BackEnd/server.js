@@ -368,11 +368,11 @@ const handler = {
   CHANGED_CONNECTION: function (data) {
     NODE_LIST = data.NODE_LIST;
     TOPOLOGY = data.TOPOLOGY;
-    
+
     NODE_LIST.splice(NODE_LIST.indexOf(selfID), 1);
 
     //update status of the node
-    ALL_NODE.forEach((value, key) => {
+    Object.keys(ALL_NODE).forEach((value, key) => {
       if (NODE_LIST.includes(key)) {
         if (value[status] === 'OFFLINE') {
           if (ALL_SERVER.includes(key)){
