@@ -367,6 +367,7 @@ const handler = {
   },
   CHANGED_CONNECTION: function (data) {
     NODE_LIST = data.NODE_LIST.split(',');
+
     TOPOLOGY = JSON.parse(data.TOPOLOGY_JSON);
     console.log(TOPOLOGY)
     NODE_LIST.splice(NODE_LIST.indexOf(selfID), 1);
@@ -374,6 +375,7 @@ const handler = {
     //update status of the node
     Object.keys(ALL_NODE).forEach((key, value) => {
       console.log("ALL NODE: key", key, "Value",value)
+
       if (NODE_LIST.includes(key)) {
         if (value[status] === 'OFFLINE') {
           if (ALL_SERVER.includes(key)){
@@ -493,6 +495,7 @@ const handler = {
   },
   INIT: function (data) {
     console.log(data)
+
     selfID = data.NODE_ID;
     console.log("INIT SELF ID", selfID);
   }

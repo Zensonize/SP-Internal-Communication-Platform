@@ -123,6 +123,14 @@ void handleSerialInput(String inData){
   Serial.println(JSON.stringify(sentSuccess));
 }
 
+void backendInit(){
+  JSONVar sysinit;
+  sysinit["FLAG"] = "INIT";
+  sysinit["NODE_ID"] = String(mesh.getNodeId());
+
+  Serial.println(JSON.stringify(sysinit));
+}
+
 void setup() {
   pinMode(ONBOARD_LED,OUTPUT);
   Serial.begin(921600);
@@ -137,6 +145,7 @@ void setup() {
   mesh.onChangedConnections(&changedConnectionCallback);
   mesh.onNodeTimeAdjusted(&nodeTimeAdjustedCallback);
 
+  backendInit();
   // userScheduler.addTask( taskSendMessage );
   // userScheduler.addTask( taskSendFreeMem );
   // taskSendFreeMem.enable();
