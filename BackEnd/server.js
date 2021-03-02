@@ -374,6 +374,7 @@ const handler = {
     //update status of the node
     for (var key in ALL_NODE){
       if (NODE_LIST.includes(key)) {
+        console.log(key)
         if (ALL_NODE[key][status] === 'OFFLINE') {
           if (ALL_SERVER.includes(key)){
             ALL_SERVER[key].status = 'ONLINE';
@@ -675,8 +676,8 @@ function serialHandler(data) {
 function convertDstAddr(dst) {
   console.log(typeof(dst))
   var lenA = dst.length - 5;
-  toA = parseInt(dst.splice(0, lenA));
-  toB = parseInt(dst.splice(-5));
+  toA = parseInt(dst.slice(0, lenA));
+  toB = parseInt(dst.slice(-5));
 
   return [toA, toB];
 }
