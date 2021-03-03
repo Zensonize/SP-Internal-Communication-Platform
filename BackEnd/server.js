@@ -368,7 +368,7 @@ const handler = {
   CHANGED_CONNECTION: function (data) {
     NODE_LIST = data.NODE_LIST.split(',');
     TOPOLOGY = JSON.parse(data.TOPOLOGY_JSON);
-    console.log(TOPOLOGY)
+    console.log("TOPOLOGY: ",TOPOLOGY)
     NODE_LIST.splice(NODE_LIST.indexOf(selfID), 1);
 
     console.log('ALL_NODE BEFORE', ALL_NODE)
@@ -393,7 +393,7 @@ const handler = {
         NODE_LIST.splice(NODE_LIST.indexOf(key), 1);
       }
       else {
-        if (ALL_NODE[key][status] === 'ONLINE') {
+        if (ALL_NODE[key].status === 'ONLINE') {
           if (ALL_SERVER.includes(key)){
             ALL_SERVER[key].status = 'OFFLINE';
             console.log('notice: server', key, ALL_SERVER[key].name, 'went offline');
