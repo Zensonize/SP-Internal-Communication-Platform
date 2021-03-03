@@ -660,21 +660,21 @@ function sendData(data, dest) {
   if (dataStr.length > config.MTU) {
     //send data in fragment
     if (dest == 'ALL'){
-      ALL_SERVER.forEach(server => {
+      for (var server in ALL_SERVER) {
         if (server.nodeStatus === 'ONLINE') {
           sendFragment(dataStr, server.nodeID)
         }
-      });
+      };
     } else {
       sendFragment(dataStr, dest);
     }
   } else {
     if (dest == 'ALL'){
-      ALL_SERVER.forEach(server => {
+      for (var server in ALL_SERVER) {
         if (server.nodeStatus === 'ONLINE') {
           sendSingle(dataStr, server.nodeID)
         }
-      });
+      }
     } else {
       sendSingle(dataStr, dest)
     }
