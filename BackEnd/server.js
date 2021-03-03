@@ -371,6 +371,9 @@ const handler = {
     console.log(TOPOLOGY)
     NODE_LIST.splice(NODE_LIST.indexOf(selfID), 1);
 
+    console.log('ALL_NODE BEFORE', ALL_NODE)
+    console.log('ALL_SERVER BEFORE', ALL_SERVER)
+
     //update status of the node
     for (var key in ALL_NODE){
       if (NODE_LIST.includes(key)) {
@@ -402,8 +405,8 @@ const handler = {
       }
     }
 
-    console.log('ALL_NODE BEFORE DB', ALL_NODE)
-    console.log('ALL_SERVER BEFORE DB', ALL_SERVER)
+    console.log('ALL_NODE new Status', ALL_NODE)
+    console.log('ALL_SERVER new Status', ALL_SERVER)
 
     //add new node to database
     NODE_LIST.forEach((item, index) => {
@@ -709,11 +712,11 @@ function initNodeList() {
     NODE_LIST = []
     result.map(({ nodeID }) => nodeID ).forEach((element) => { NODE_LIST.push(element)})
     
-    Object.keys(NODE_LIST).forEach((key, index) => {
+    for (var key in NODE_LIST) {
       ALL_NODE[key] = {
         status: 'OFFLINE'
       }
-    });
+    }
 
     console.log('NODE LIST', NODE_LIST)
     console.log('ALL NODE', ALL_NODE)
