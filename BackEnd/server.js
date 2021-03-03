@@ -54,12 +54,15 @@ var chatschema = mongoose.Schema({
   msg: String,
   date: String,
   room: String,
-  synced: [{type: String}]
+  synced: [{type: String}],
+  FLAG: String,
+  owner: String
 });
 
 var RoomSchema = mongoose.Schema({
   RoomID: String,
-  synced: [{type: String}]
+  synced: [{type: String}],
+  owner: String
 });
 
 var room_list = mongoose.model("room_list", RoomSchema);
@@ -67,7 +70,9 @@ var room_list = mongoose.model("room_list", RoomSchema);
 const NodeSchema = mongoose.Schema({
   nodeID: String,
   isServer: Boolean,
-  nodeName: String
+  nodeName: String,
+  synced: [{type: String}],
+  owner: String
 })
 
 var NodeSchema_list = mongoose.model("NodeSchema_list",NodeSchema);
@@ -84,7 +89,8 @@ room_list.find({}, { RoomID: 1, _id: 0 }, (err, result) => {
 const userRegister = mongoose.Schema({
   registername: String,
   password: String,
-  synced: [{type: String}]
+  synced: [{type: String}],
+  owner: String
 });
 
 var userDataModel = mongoose.model("user_register", userRegister);
@@ -217,7 +223,9 @@ io.on("connection", (socket) => {
       username: user,
       msg: msg,
       date: new moment().format("DD/MM/YYYY HH:mm:ss"),
-      room: present_room_id
+      room: present_room_id,
+      FLAG: 'msg',
+      owner: selfID,
     });
     socket.join(room, () => {
       save_msg.save((err, result) => {
@@ -394,7 +402,7 @@ const handler = {
       }
       else {
         if (ALL_NODE[key].status === 'ONLINE') {
-          if (ALL_SERVER.includes(key)){
+          if (key in ALL_SERVER){
             ALL_SERVER[key].status = 'OFFLINE';
             console.log('notice: server', key, ALL_SERVER[key].name, 'went offline');
           }
@@ -436,7 +444,7 @@ const handler = {
   DATA: function (data) {
     if (!data.FRAG) {
       console.log("RECEIVED ", data.MSG_ID, "ESP HEAP: ", data.HEAP);
-      // console.log("msg is: ", data.DATA);
+      console.log("msg is: ", data.DATA);
       console.log("send msg to: ",present_room_id)
       var extract_json_obj = JSON.parse(data.DATA)
       // console.log(extract_json_obj)
@@ -649,30 +657,33 @@ function sendSingle(dataStr, dest) {
       TOB: convertDstAddr(dest)[1]
     },
   };
-
+  console.log('sending to serial', msg)
   TO_SEND_BUFF.push(msg);
   sendToSerial();
 }
 
 function sendData(data, dest) {
   dataStr = JSON.stringify(data);
-
+ console.log('send', data, "to ",dest, 'len', dataStr.length)
   if (dataStr.length > config.MTU) {
     //send data in fragment
-    if (dest == 'ALL'){
+    if (dest === 'ALL'){
       for (var server in ALL_SERVER) {
-        if (server.nodeStatus === 'ONLINE') {
-          sendFragment(dataStr, server.nodeID)
+        if (ALL_SERVER[server].status === 'ONLINE') {
+          console.log('will send to', server);
+          sendFragment(dataStr, server)
         }
       };
     } else {
       sendFragment(dataStr, dest);
     }
   } else {
-    if (dest == 'ALL'){
+    if (dest === 'ALL'){
       for (var server in ALL_SERVER) {
-        if (server.nodeStatus === 'ONLINE') {
-          sendSingle(dataStr, server.nodeID)
+        
+        if (ALL_SERVER[server].status === 'ONLINE') {
+          console.log('will send to', server, ALL_SERVER[server]);
+          sendSingle(dataStr, server)
         }
       }
     } else {
@@ -727,14 +738,14 @@ function initNodeList() {
   NodeSchema_list.find({isServer: true}, (err,result) => {
     if (err) throw err;
     SERVER_LIST = result;
-
-    Object.keys(SERVER_LIST).forEach((key, index) => {
-      ALL_SERVER[key.nodeID] = {
+    console.log("Server lists: ",SERVER_LIST)
+    for (var server in SERVER_LIST){
+      console.log(server)
+      ALL_SERVER[SERVER_LIST[server].nodeID] = {
         status: 'OFFLINE',
-        name: key.nodeName
+        name: SERVER_LIST[server].nodeName
       }
-    })
-
+    }
     console.log('SERVER LIST', SERVER_LIST);
     console.log('ALL SERVER', ALL_SERVER);
   });
