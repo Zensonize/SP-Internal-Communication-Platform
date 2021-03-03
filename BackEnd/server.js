@@ -374,9 +374,10 @@ const handler = {
     //update status of the node
     for (var key in ALL_NODE){
       if (NODE_LIST.includes(key)) {
-        console.log(key)
+        console.log('KEY',key, 'data in ALL_NODE', ALL_NODE[key])
         if (ALL_NODE[key][status] === 'OFFLINE') {
           if (ALL_SERVER.includes(key)){
+            console.log('KEY',key, 'data in ALL_SERVER', ALL_SERVER[key])
             ALL_SERVER[key].status = 'ONLINE';
             console.log('notice: server', key, ALL_SERVER[key].name, 'back online');
           }
@@ -401,6 +402,9 @@ const handler = {
       }
     }
 
+    console.log('ALL_NODE BEFORE DB', ALL_NODE)
+    console.log('ALL_SERVER BEFORE DB', ALL_SERVER)
+
     //add new node to database
     NODE_LIST.forEach((item, index) => {
       console.log('NEW NODE', item, 'index', index)
@@ -420,6 +424,9 @@ const handler = {
 
       echoServer(item);
     });
+
+    console.log('ALL_NODE AFTER', ALL_NODE)
+    console.log('ALL_SERVER AFTER', ALL_SERVER)
     // bcastServer();
   },
   DATA: function (data) {
