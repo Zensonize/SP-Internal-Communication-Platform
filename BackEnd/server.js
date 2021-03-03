@@ -371,12 +371,17 @@ const handler = {
     console.log(TOPOLOGY)
     NODE_LIST.splice(NODE_LIST.indexOf(selfID), 1);
 
+    console.log('ALL_NODE BEFORE', ALL_NODE)
+    console.log('ALL_SERVER BEFORE', ALL_SERVER)
+
     //update status of the node
     for (var key in ALL_NODE){
-      if (NODE_LIST.includes(key)) {
-        console.log(key)
-        if (ALL_NODE[key][status] === 'OFFLINE') {
-          if (ALL_SERVER.includes(key)){
+      console.log('KEY',key, 'data in ALL_NODE', ALL_NODE[key])
+      if (NODE_LIST.indexOf(key) >= 0) {
+        console.log('KEY',key, 'data in ALL_NODE', ALL_NODE[key], "Key already included")
+        if (ALL_NODE[key].status === 'OFFLINE') {
+          if (key in ALL_SERVER){
+            console.log('KEY',key, 'data in ALL_SERVER', ALL_SERVER[key])
             ALL_SERVER[key].status = 'ONLINE';
             console.log('notice: server', key, ALL_SERVER[key].name, 'back online');
           }
@@ -401,6 +406,9 @@ const handler = {
       }
     }
 
+    console.log('ALL_NODE new Status', ALL_NODE)
+    console.log('ALL_SERVER new Status', ALL_SERVER)
+
     //add new node to database
     NODE_LIST.forEach((item, index) => {
       console.log('NEW NODE', item, 'index', index)
@@ -420,6 +428,9 @@ const handler = {
 
       echoServer(item);
     });
+
+    console.log('ALL_NODE AFTER', ALL_NODE)
+    console.log('ALL_SERVER AFTER', ALL_SERVER)
     // bcastServer();
   },
   DATA: function (data) {
@@ -649,7 +660,7 @@ function sendData(data, dest) {
   if (dataStr.length > config.MTU) {
     //send data in fragment
     if (dest == 'ALL'){
-      ALL_SERVER_LIST.forEach(server => {
+      ALL_SERVER.forEach(server => {
         if (server.nodeStatus === 'ONLINE') {
           sendFragment(dataStr, server.nodeID)
         }
@@ -659,7 +670,7 @@ function sendData(data, dest) {
     }
   } else {
     if (dest == 'ALL'){
-      ALL_SERVER_LIST.forEach(server => {
+      ALL_SERVER.forEach(server => {
         if (server.nodeStatus === 'ONLINE') {
           sendSingle(dataStr, server.nodeID)
         }
@@ -699,14 +710,15 @@ function initNodeList() {
   NodeSchema_list.find({},{nodeID: 1, _id: 0},(err,result) => {
     console.log("data from node schema",result)
     if (err) throw err;
-    NODE_LIST = []
+    var NODE_LIST = []
     result.map(({ nodeID }) => nodeID ).forEach((element) => { NODE_LIST.push(element)})
     
-    Object.keys(NODE_LIST).forEach((key, index) => {
+    NODE_LIST.forEach((key) =>  {
+      console.log(key)
       ALL_NODE[key] = {
         status: 'OFFLINE'
       }
-    });
+    })
 
     console.log('NODE LIST', NODE_LIST)
     console.log('ALL NODE', ALL_NODE)
