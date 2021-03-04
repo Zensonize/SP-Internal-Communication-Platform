@@ -48,7 +48,7 @@ mongoose.connection.on("connected", (err, res) => {
   console.log("mongoose is connected");
 });
 
-var chatschema = mongoose.Schema({
+var ChatSchema = mongoose.Schema({
   username: String,
   msg: String,
   date: String,
@@ -150,7 +150,7 @@ io.on("connection", (socket) => {
         console.log(result);
         if (result.length === 0) {
           console.log(`This room name ${data} is not created`);
-          let new_room = mongoose.model(data, chatschema);
+          let new_room = mongoose.model(data, ChatSchema);
           let data_room = new new_room({
             username: "Admin",
             msg: `Welcome to ${data}`,
@@ -205,7 +205,7 @@ io.on("connection", (socket) => {
       }
     );
 
-    var custom_room = mongoose.model(present_room_id, chatschema);
+    var custom_room = mongoose.model(present_room_id, ChatSchema);
     custom_room.find((err, result) => {
       if (err) throw err;
       msg_room_2 = result;
@@ -217,7 +217,7 @@ io.on("connection", (socket) => {
     console.log(`${present_room_id} active!`);
     console.log(`${socket.username} said '${msg}'`);
 
-    let message = mongoose.model(present_room_id, chatschema);
+    let message = mongoose.model(present_room_id, ChatSchema);
     let save_msg = new message({
       username: user,
       msg: msg,
@@ -237,7 +237,7 @@ io.on("connection", (socket) => {
         msgtoSync['FLAG'] = 'msg';
 
         setTimeout(() => {
-          sendData(msgtoSync, 'ALL');
+          sendData(msgtoSync, 'ALL', result.id);
         }, 750);
       });
     });
@@ -352,9 +352,40 @@ const handler = {
         SENT_BUFF.splice(i, 1);
 
         //tag db that this message is sent
-        originalData = JSON.parse(msg.msg.DATA);
-        if (originalData.FLAG === 'msg') {
-
+        // originalData = JSON.parse(msg.msg.DATA);
+        if (msg.FFLAG === 'msg') {
+          //model for querying db
+            var chatModel = mongoose.model("ChatSchemaList", ChatSchema);
+            chatModel.updateOne({_id: msg.id}, {
+              $push: {
+                synced: msg.to
+              }
+            }, (err, result) => {
+              if (err) throw err;
+              console.log('updated chat db after synced', result);
+            });
+        }
+        else if (originalData.FLAG === 'room') {
+          var roomModel = mongoose.model('RoomSchemaList', RoomSchema);
+          roomModel.updateOne({_id: msg.id}, {
+            $push: {
+              synced: msg.to
+            }
+          }, (err, result) => {
+            if (err) throw err;
+            console.log('updated room db after synced', result);
+          });
+        }
+        else if (originalData.FLAG === 'user') {
+          var userModel = mongoose.model("UserSchemaList", userRegister);
+          userModel.updateOne({_id: msg.id}, {
+            $push: {
+              synced: msg.to
+            }
+          }, (err, result) => {
+            if (err) throw err;
+            console.log('updated user db after synced', result);
+          });
         }
 
         break;
@@ -451,7 +482,7 @@ const handler = {
       var extract_json_obj = JSON.parse(data.DATA)
       // console.log(extract_json_obj)
       if (extract_json_obj.FLAG === 'msg') {
-        let message = mongoose.model(present_room_id, chatschema);
+        let message = mongoose.model(present_room_id, ChatSchema);
         let u_name_in_chat = extract_json_obj.username
         let msg_in_chat = extract_json_obj.msg
         let date_in_chat = extract_json_obj.date
@@ -460,7 +491,7 @@ const handler = {
           console.log("mismatch room")
           console.log(`user is: ${u_name_in_chat} msg is: ${msg_in_chat}
           date is: ${date_in_chat} room is: ${room_in_chat} `)
-          let message = mongoose.model(room_in_chat, chatschema);
+          let message = mongoose.model(room_in_chat, ChatSchema);
           let save_msg = new message({
             username: u_name_in_chat,
             msg: msg_in_chat,
@@ -617,7 +648,7 @@ function msgTimeout() {
   }
 }
 
-function sendFragment(dataStr, dest) {
+function sendFragment(dataStr, dest, _id, FLAG) {
 
   dataFrag = chunkSubstr(dataStr, config.MTU);
 
@@ -625,6 +656,8 @@ function sendFragment(dataStr, dest) {
     retires: 0,
     timedout: 0,
     to: dest,
+    id: _id,
+    FFLAG: FLAG,
     msg: {
       MSG_ID: nextMSG_ID(),
       FLAG: "DATA",
@@ -645,11 +678,13 @@ function sendFragment(dataStr, dest) {
   }
 }
 
-function sendSingle(dataStr, dest) {
+function sendSingle(dataStr, dest, _id, FLAG) {
   msg = {
     retires: 0,
     timedout: 0,
     to: dest,
+    id: _id,
+    FFLAG: FLAG,
     msg: {
       MSG_ID: nextMSG_ID(),
       FLAG: "DATA",
@@ -664,20 +699,20 @@ function sendSingle(dataStr, dest) {
   sendToSerial();
 }
 
-function sendData(data, dest) {
+function sendData(data, dest, _id) {
   dataStr = JSON.stringify(data);
- console.log('send', data, "to ",dest, 'len', dataStr.length)
+  console.log('send', data, "to ",dest, 'len', dataStr.length)
   if (dataStr.length > config.MTU) {
     //send data in fragment
     if (dest === 'ALL'){
       for (var server in ALL_SERVER) {
         if (ALL_SERVER[server].status === 'ONLINE') {
           console.log('will send to', server);
-          sendFragment(dataStr, server)
+          sendFragment(dataStr, server, _id, data.FLAG)
         }
       };
     } else {
-      sendFragment(dataStr, dest);
+      sendFragment(dataStr, dest, _id, data.FLAG);
     }
   } else {
     if (dest === 'ALL'){
@@ -685,11 +720,11 @@ function sendData(data, dest) {
         
         if (ALL_SERVER[server].status === 'ONLINE') {
           console.log('will send to', server, ALL_SERVER[server]);
-          sendSingle(dataStr, server)
+          sendSingle(dataStr, server, _id, data.FLAG)
         }
       }
     } else {
-      sendSingle(dataStr, dest)
+      sendSingle(dataStr, dest, _id, data.FLAG)
     }
   }
 }
