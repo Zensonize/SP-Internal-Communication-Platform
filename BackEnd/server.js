@@ -1,5 +1,6 @@
 var app = require("express")();
 var config = require("./config");
+var schema = require("./db/schema");
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", config.host);
   res.header(
@@ -31,10 +32,10 @@ moment.locale("th");
 
 mongoose.connect(config.db, {
   auth: {
-    authSource: "admin",
+    authSource: config.username_mongoDB,
   },
-  user: "admin",
-  pass: "sunat1998",
+  user: config.username_mongoDB,
+  pass: config.password_mongoDB,
   useUnifiedTopology: true,
   useNewUrlParser: true,
 });
@@ -48,33 +49,15 @@ mongoose.connection.on("connected", (err, res) => {
   console.log("mongoose is connected");
 });
 
-var ChatSchema = mongoose.Schema({
-  username: String,
-  msg: String,
-  date: String,
-  room: String,
-  synced: [{type: String}],
-  FLAG: String,
-  owner: String
-});
+var ChatSchema = schema.chat_schema;
 
-var RoomSchema = mongoose.Schema({
-  RoomID: String,
-  synced: [{type: String}],
-  owner: String
-});
+var RoomSchema = schema.Room_schema;
 
 var room_list = mongoose.model("room_list", RoomSchema);
 
-const NodeSchema = mongoose.Schema({
-  nodeID: String,
-  isServer: Boolean,
-  nodeName: String,
-  synced: [{type: String}],
-  owner: String
-})
+const NodeSchema = schema.Node_schema;
 
-var NodeSchema_list = mongoose.model("NodeSchema_list",NodeSchema);
+var NodeSchema_list = mongoose.model("NodeSchema_list", NodeSchema);
 
 room_list.find({}, { RoomID: 1, _id: 0 }, (err, result) => {
   result
@@ -85,12 +68,7 @@ room_list.find({}, { RoomID: 1, _id: 0 }, (err, result) => {
   room_lists = result;
 });
 
-const userRegister = mongoose.Schema({
-  registername: String,
-  password: String,
-  synced: [{type: String}],
-  owner: String
-});
+const userRegister = schema.user_register;
 
 var userDataModel = mongoose.model("user_register", userRegister);
 userDataModel.find((err, result) => {
@@ -223,7 +201,7 @@ io.on("connection", (socket) => {
       msg: msg,
       date: new moment().format("DD/MM/YYYY HH:mm:ss"),
       room: present_room_id,
-      FLAG: 'msg',
+      FLAG: "msg",
       owner: selfID,
     });
     socket.join(room, () => {
@@ -234,10 +212,10 @@ io.on("connection", (socket) => {
         io.to(room).emit("msg_room", result);
 
         let msgtoSync = result;
-        msgtoSync['FLAG'] = 'msg';
+        msgtoSync["FLAG"] = "msg";
 
         setTimeout(() => {
-          sendData(msgtoSync, 'ALL', result.id);
+          sendData(msgtoSync, "ALL", result.id);
         }, 750);
       });
     });
@@ -269,9 +247,8 @@ http.listen(process.env.PORT || config.port, () => {
 //listen to serial port
 var SerialPort = require("serialport");
 const ReadLine = require("@serialport/parser-readline");
-const PORT = new SerialPort(config.SERIAL_PORT, { baudRate: config.BUADRATE});
+const PORT = new SerialPort(config.SERIAL_PORT, { baudRate: config.BUADRATE });
 const parser = PORT.pipe(new ReadLine({ delimiter: "\n" }));
-
 
 PORT.on("open", () => {
   console.info("serial port open");
@@ -293,7 +270,7 @@ let ALL_NODE = {};
 let TOPOLOGY = {};
 let selfID = "";
 
-initNodeList()
+initNodeList();
 
 //variable for flow control
 let TO_SEND_BUFF = [];
@@ -305,7 +282,7 @@ let timeoutRoutine = null;
 const handler = {
   ECHO: function (data) {
     if (data.FROM in ALL_SERVER) {
-      if (ALL_SERVER[data.FROM].status === 'OFFLINE') {
+      if (ALL_SERVER[data.FROM].status === "OFFLINE") {
         console.warn("Server", ALL_SERVER[data.FROM].name, "back online");
       }
       ALL_SERVER[data.FROM].status = "ONLINE";
@@ -316,13 +293,17 @@ const handler = {
       console.log("added new server", ALL_SERVER[data.FROM].name);
       RECV_BUFF[data.FROM] = {};
 
-      NodeSchema_list.updateOne({nodeID: data.FROM}, {
-        isServer: true,
-        nodeName: data.SERVER_NAME
-      }, (err, result) => {
-        if (err) throw err;
-        console.log(result);
-      });
+      NodeSchema_list.updateOne(
+        { nodeID: data.FROM },
+        {
+          isServer: true,
+          nodeName: data.SERVER_NAME,
+        },
+        (err, result) => {
+          if (err) throw err;
+          console.log(result);
+        }
+      );
     }
   },
   READY: function (data) {
@@ -330,19 +311,22 @@ const handler = {
     if (!data.SUCCESS) {
       recentSend = SENT_BUFF.pop();
       if (recentSend.retires >= 3) {
-        console.error("ESP failed to send", recentSend.msg.MSG_ID, 'because the node is offline');
+        console.error(
+          "ESP failed to send",
+          recentSend.msg.MSG_ID,
+          "because the node is offline"
+        );
       } else {
         // console.log('ESP will retires to send within', TO_SEND_BUFF.length)
         // TO_SEND_BUFF.push(recentSend);
         // sendToSerial();
-        ALL_NODE[recentSend.to].status = 'OFFLINE'
-        ALL_SERVER[recentSend.to].status = 'OFFLINE'
-        console.log('Server', ALL_SERVER[recentSend.to].name, 'went OFFLINE')
+        ALL_NODE[recentSend.to].status = "OFFLINE";
+        ALL_SERVER[recentSend.to].status = "OFFLINE";
+        console.log("Server", ALL_SERVER[recentSend.to].name, "went OFFLINE");
       }
-    }
-    else {
-      console.log('ESP is ready to send next')
-      sendToSerial()
+    } else {
+      console.log("ESP is ready to send next");
+      sendToSerial();
     }
   },
   ACK: function (data) {
@@ -353,39 +337,49 @@ const handler = {
 
         //tag db that this message is sent
         // originalData = JSON.parse(msg.msg.DATA);
-        if (msg.FFLAG === 'msg') {
+        if (msg.FFLAG === "msg") {
           //model for querying db
-            var chatModel = mongoose.model("ChatSchemaList", ChatSchema);
-            chatModel.updateOne({_id: msg.id}, {
+          var chatModel = mongoose.model("ChatSchemaList", ChatSchema);
+          chatModel.updateOne(
+            { _id: msg.id },
+            {
               $push: {
-                synced: msg.to
-              }
-            }, (err, result) => {
+                synced: msg.to,
+              },
+            },
+            (err, result) => {
               if (err) throw err;
-              console.log('updated chat db after synced', result);
-            });
-        }
-        else if (originalData.FLAG === 'room') {
-          var roomModel = mongoose.model('RoomSchemaList', RoomSchema);
-          roomModel.updateOne({_id: msg.id}, {
-            $push: {
-              synced: msg.to
+              console.log("updated chat db after synced", result);
             }
-          }, (err, result) => {
-            if (err) throw err;
-            console.log('updated room db after synced', result);
-          });
-        }
-        else if (originalData.FLAG === 'user') {
+          );
+        } else if (originalData.FLAG === "room") {
+          var roomModel = mongoose.model("RoomSchemaList", RoomSchema);
+          roomModel.updateOne(
+            { _id: msg.id },
+            {
+              $push: {
+                synced: msg.to,
+              },
+            },
+            (err, result) => {
+              if (err) throw err;
+              console.log("updated room db after synced", result);
+            }
+          );
+        } else if (originalData.FLAG === "user") {
           var userModel = mongoose.model("UserSchemaList", userRegister);
-          userModel.updateOne({_id: msg.id}, {
-            $push: {
-              synced: msg.to
+          userModel.updateOne(
+            { _id: msg.id },
+            {
+              $push: {
+                synced: msg.to,
+              },
+            },
+            (err, result) => {
+              if (err) throw err;
+              console.log("updated user db after synced", result);
             }
-          }, (err, result) => {
-            if (err) throw err;
-            console.log('updated user db after synced', result);
-          });
+          );
         }
 
         break;
@@ -407,118 +401,128 @@ const handler = {
     }
   },
   CHANGED_CONNECTION: function (data) {
-    NODE_LIST = data.NODE_LIST.split(',');
+    NODE_LIST = data.NODE_LIST.split(",");
     TOPOLOGY = JSON.parse(data.TOPOLOGY_JSON);
-    console.log("TOPOLOGY: ",TOPOLOGY)
+    console.log("TOPOLOGY: ", TOPOLOGY);
     NODE_LIST.splice(NODE_LIST.indexOf(selfID), 1);
 
-    console.log('ALL_NODE BEFORE', ALL_NODE)
-    console.log('ALL_SERVER BEFORE', ALL_SERVER)
+    console.log("ALL_NODE BEFORE", ALL_NODE);
+    console.log("ALL_SERVER BEFORE", ALL_SERVER);
 
     //update status of the node
-    for (var key in ALL_NODE){
-      console.log('KEY',key, 'data in ALL_NODE', ALL_NODE[key])
+    for (var key in ALL_NODE) {
+      console.log("KEY", key, "data in ALL_NODE", ALL_NODE[key]);
       if (NODE_LIST.indexOf(key) >= 0) {
-        console.log('KEY',key, 'data in ALL_NODE', ALL_NODE[key], "Key already included")
-        if (ALL_NODE[key].status === 'OFFLINE') {
-          if (key in ALL_SERVER){
-            console.log('KEY',key, 'data in ALL_SERVER', ALL_SERVER[key])
-            ALL_SERVER[key].status = 'ONLINE';
-            console.log('notice: server', key, ALL_SERVER[key].name, 'back online');
-          }
-          else {
-            console.log('notice: node', key, 'back online');
+        console.log(
+          "KEY",
+          key,
+          "data in ALL_NODE",
+          ALL_NODE[key],
+          "Key already included"
+        );
+        if (ALL_NODE[key].status === "OFFLINE") {
+          if (key in ALL_SERVER) {
+            console.log("KEY", key, "data in ALL_SERVER", ALL_SERVER[key]);
+            ALL_SERVER[key].status = "ONLINE";
+            console.log(
+              "notice: server",
+              key,
+              ALL_SERVER[key].name,
+              "back online"
+            );
+          } else {
+            console.log("notice: node", key, "back online");
           }
         }
-        ALL_NODE[key].status = 'ONLINE';
+        ALL_NODE[key].status = "ONLINE";
         NODE_LIST.splice(NODE_LIST.indexOf(key), 1);
-      }
-      else {
-        if (ALL_NODE[key].status === 'ONLINE') {
-          if (key in ALL_SERVER){
-            ALL_SERVER[key].status = 'OFFLINE';
-            console.log('notice: server', key, ALL_SERVER[key].name, 'went offline');
-          }
-          else {
-            console.log('notice: node', key, 'went offline');
+      } else {
+        if (ALL_NODE[key].status === "ONLINE") {
+          if (key in ALL_SERVER) {
+            ALL_SERVER[key].status = "OFFLINE";
+            console.log(
+              "notice: server",
+              key,
+              ALL_SERVER[key].name,
+              "went offline"
+            );
+          } else {
+            console.log("notice: node", key, "went offline");
           }
         }
-        ALL_NODE[key].status = 'OFFLINE';
+        ALL_NODE[key].status = "OFFLINE";
       }
     }
 
-    console.log('ALL_NODE new Status', ALL_NODE)
-    console.log('ALL_SERVER new Status', ALL_SERVER)
+    console.log("ALL_NODE new Status", ALL_NODE);
+    console.log("ALL_SERVER new Status", ALL_SERVER);
 
     //add new node to database
     NODE_LIST.forEach((item, index) => {
-      console.log('NEW NODE', item, 'index', index)
+      console.log("NEW NODE", item, "index", index);
       ALL_NODE[item] = {
-        status: 'ONLINE'
-      }
+        status: "ONLINE",
+      };
       let new_node = new NodeSchema_list({
         nodeID: item,
         isServer: false,
         nodeName: "",
-
-      })
+      });
       new_node.save((err, result) => {
         if (err) throw err;
         console.log(result);
-      })
+      });
 
       echoServer(item);
     });
 
-    console.log('ALL_NODE AFTER', ALL_NODE)
-    console.log('ALL_SERVER AFTER', ALL_SERVER)
+    console.log("ALL_NODE AFTER", ALL_NODE);
+    console.log("ALL_SERVER AFTER", ALL_SERVER);
     // bcastServer();
   },
   DATA: function (data) {
     if (!data.FRAG) {
       console.log("RECEIVED ", data.MSG_ID, "ESP HEAP: ", data.HEAP);
       console.log("msg is: ", data.DATA);
-      console.log("send msg to: ",present_room_id)
-      var extract_json_obj = JSON.parse(data.DATA)
+      console.log("send msg to: ", present_room_id);
+      var extract_json_obj = JSON.parse(data.DATA);
       // console.log(extract_json_obj)
-      if (extract_json_obj.FLAG === 'msg') {
+      if (extract_json_obj.FLAG === "msg") {
         let message = mongoose.model(present_room_id, ChatSchema);
-        let u_name_in_chat = extract_json_obj.username
-        let msg_in_chat = extract_json_obj.msg
-        let date_in_chat = extract_json_obj.date
-        let room_in_chat = extract_json_obj.room
-        if(room_in_chat !== present_room_id){
-          console.log("mismatch room")
+        let u_name_in_chat = extract_json_obj.username;
+        let msg_in_chat = extract_json_obj.msg;
+        let date_in_chat = extract_json_obj.date;
+        let room_in_chat = extract_json_obj.room;
+        if (room_in_chat !== present_room_id) {
+          console.log("mismatch room");
           console.log(`user is: ${u_name_in_chat} msg is: ${msg_in_chat}
-          date is: ${date_in_chat} room is: ${room_in_chat} `)
+          date is: ${date_in_chat} room is: ${room_in_chat} `);
           let message = mongoose.model(room_in_chat, ChatSchema);
           let save_msg = new message({
             username: u_name_in_chat,
             msg: msg_in_chat,
             date: date_in_chat,
           });
-            save_msg.save((err, result) => {
-              if (err) throw err;
-              // console.log(result);
-              msg_room_2.push(result);
-              io.to(room_in_chat).emit("msg_room", result);
-            });
-        }
-        else{
+          save_msg.save((err, result) => {
+            if (err) throw err;
+            // console.log(result);
+            msg_room_2.push(result);
+            io.to(room_in_chat).emit("msg_room", result);
+          });
+        } else {
           let save_msg = new message({
             username: u_name_in_chat,
             msg: msg_in_chat,
             date: date_in_chat,
           });
-            save_msg.save((err, result) => {
-              if (err) throw err;
-              // console.log(result);
-              msg_room_2.push(result);
-              io.to(present_room_id).emit("msg_room", result);
-            });
+          save_msg.save((err, result) => {
+            if (err) throw err;
+            // console.log(result);
+            msg_room_2.push(result);
+            io.to(present_room_id).emit("msg_room", result);
+          });
         }
       }
-      
     } else {
       if (data.MSG_ID in RECV_BUFF[data.FROM]) {
         RECV_BUFF[data.FROM][data.MSG_ID].push(data);
@@ -544,10 +548,10 @@ const handler = {
     }
   },
   INIT: function (data) {
-    console.log(data)
+    console.log(data);
     selfID = data.NODE_ID;
     console.log("INIT SELF ID", selfID);
-  }
+  },
 };
 
 function bcastServer() {
@@ -571,9 +575,9 @@ function echoServer(dest) {
       FLAG: "ECHO",
       SERVER_NAME: "SERVER A",
       TOA: convertDstAddr(dest)[0],
-      TOB: convertDstAddr(dest)[1]
-    }
-  }
+      TOB: convertDstAddr(dest)[1],
+    },
+  };
   TO_SEND_BUFF.push(msg);
   sendToSerial();
 }
@@ -605,7 +609,7 @@ function sendToSerial() {
     }
   } else if (!isFree) {
     console.log("ESP32 is not ready", TO_SEND_BUFF.length, "message in queue");
-    PORT.flush()
+    PORT.flush();
   }
 }
 
@@ -649,7 +653,6 @@ function msgTimeout() {
 }
 
 function sendFragment(dataStr, dest, _id, FLAG) {
-
   dataFrag = chunkSubstr(dataStr, config.MTU);
 
   msg = {
@@ -665,7 +668,7 @@ function sendFragment(dataStr, dest, _id, FLAG) {
       FRAG_ID: 0,
       FRAG_LEN: dataFrag.length,
       TOA: convertDstAddr(dest)[0],
-      TOB: convertDstAddr(dest)[1]
+      TOB: convertDstAddr(dest)[1],
     },
   };
 
@@ -691,40 +694,39 @@ function sendSingle(dataStr, dest, _id, FLAG) {
       FRAG: false,
       DATA: dataStr,
       TOA: convertDstAddr(dest)[0],
-      TOB: convertDstAddr(dest)[1]
+      TOB: convertDstAddr(dest)[1],
     },
   };
-  console.log('sending to serial', msg)
+  console.log("sending to serial", msg);
   TO_SEND_BUFF.push(msg);
   sendToSerial();
 }
 
 function sendData(data, dest, _id) {
   dataStr = JSON.stringify(data);
-  console.log('send', data, "to ",dest, 'len', dataStr.length)
+  console.log("send", data, "to ", dest, "len", dataStr.length);
   if (dataStr.length > config.MTU) {
     //send data in fragment
-    if (dest === 'ALL'){
+    if (dest === "ALL") {
       for (var server in ALL_SERVER) {
-        if (ALL_SERVER[server].status === 'ONLINE') {
-          console.log('will send to', server);
-          sendFragment(dataStr, server, _id, data.FLAG)
+        if (ALL_SERVER[server].status === "ONLINE") {
+          console.log("will send to", server);
+          sendFragment(dataStr, server, _id, data.FLAG);
         }
-      };
+      }
     } else {
       sendFragment(dataStr, dest, _id, data.FLAG);
     }
   } else {
-    if (dest === 'ALL'){
+    if (dest === "ALL") {
       for (var server in ALL_SERVER) {
-        
-        if (ALL_SERVER[server].status === 'ONLINE') {
-          console.log('will send to', server, ALL_SERVER[server]);
-          sendSingle(dataStr, server, _id, data.FLAG)
+        if (ALL_SERVER[server].status === "ONLINE") {
+          console.log("will send to", server, ALL_SERVER[server]);
+          sendSingle(dataStr, server, _id, data.FLAG);
         }
       }
     } else {
-      sendSingle(dataStr, dest, _id, data.FLAG)
+      sendSingle(dataStr, dest, _id, data.FLAG);
     }
   }
 }
@@ -735,7 +737,7 @@ function serialHandler(data) {
 }
 
 function convertDstAddr(dst) {
-  console.log(typeof(dst))
+  console.log(typeof dst);
   var lenA = dst.length - 5;
   toA = parseInt(dst.slice(0, lenA));
   toB = parseInt(dst.slice(-5));
@@ -755,35 +757,39 @@ function chunkSubstr(str, size) {
 }
 
 function initNodeList() {
-  NodeSchema_list.find({},{nodeID: 1, _id: 0},(err,result) => {
-    console.log("data from node schema",result)
+  NodeSchema_list.find({}, { nodeID: 1, _id: 0 }, (err, result) => {
+    console.log("data from node schema", result);
     if (err) throw err;
-    var NODE_LIST = []
-    result.map(({ nodeID }) => nodeID ).forEach((element) => { NODE_LIST.push(element)})
-    
-    NODE_LIST.forEach((key) =>  {
-      console.log(key)
-      ALL_NODE[key] = {
-        status: 'OFFLINE'
-      }
-    })
+    var NODE_LIST = [];
+    result
+      .map(({ nodeID }) => nodeID)
+      .forEach((element) => {
+        NODE_LIST.push(element);
+      });
 
-    console.log('NODE LIST', NODE_LIST)
-    console.log('ALL NODE', ALL_NODE)
+    NODE_LIST.forEach((key) => {
+      console.log(key);
+      ALL_NODE[key] = {
+        status: "OFFLINE",
+      };
+    });
+
+    console.log("NODE LIST", NODE_LIST);
+    console.log("ALL NODE", ALL_NODE);
   });
-  
-  NodeSchema_list.find({isServer: true}, (err,result) => {
+
+  NodeSchema_list.find({ isServer: true }, (err, result) => {
     if (err) throw err;
     SERVER_LIST = result;
-    console.log("Server lists: ",SERVER_LIST)
-    for (var server in SERVER_LIST){
-      console.log(server)
+    console.log("Server lists: ", SERVER_LIST);
+    for (var server in SERVER_LIST) {
+      console.log(server);
       ALL_SERVER[SERVER_LIST[server].nodeID] = {
-        status: 'OFFLINE',
-        name: SERVER_LIST[server].nodeName
-      }
+        status: "OFFLINE",
+        name: SERVER_LIST[server].nodeName,
+      };
     }
-    console.log('SERVER LIST', SERVER_LIST);
-    console.log('ALL SERVER', ALL_SERVER);
+    console.log("SERVER LIST", SERVER_LIST);
+    console.log("ALL SERVER", ALL_SERVER);
   });
 }
