@@ -27,7 +27,6 @@ var room_lists = [];
 var lists = [];
 var present_room_id = "";
 const moment = require("moment");
-const { error } = require("console");
 moment.locale("th");
 
 mongoose.connect(config.db, {
@@ -331,11 +330,14 @@ const handler = {
     if (!data.SUCCESS) {
       recentSend = SENT_BUFF.pop();
       if (recentSend.retires >= 3) {
-        console.error("ESP failed to send", recentSend.msg.MSG_ID);
+        console.error("ESP failed to send", recentSend.msg.MSG_ID, 'because the node is offline');
       } else {
-        console.log('ESP will retires to send within', TO_SEND_BUFF.length)
-        TO_SEND_BUFF.push(recentSend);
-        sendToSerial();
+        // console.log('ESP will retires to send within', TO_SEND_BUFF.length)
+        // TO_SEND_BUFF.push(recentSend);
+        // sendToSerial();
+        ALL_NODE[recentSend.to].status = 'OFFLINE'
+        ALL_SERVER[recentSend.to].status = 'OFFLINE'
+        console.log('Server', ALL_SERVER[recentSend.to].name, 'went OFFLINE')
       }
     }
     else {
