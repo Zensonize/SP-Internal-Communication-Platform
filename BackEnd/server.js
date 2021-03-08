@@ -214,9 +214,10 @@ io.on("connection", (socket) => {
         let msgtoSync = result;
         msgtoSync["FLAG"] = "msg";
 
-        setTimeout(() => {
-          sendData(msgtoSync, "ALL", result.id);
-        }, 750);
+        sendData(msgtoSync, "ALL", result.id);
+        // setTimeout(() => {
+        //   sendData(msgtoSync, "ALL", result.id);
+        // }, 750);
       });
     });
     //   socket.on("passthrough"), (payload) => {
@@ -326,7 +327,7 @@ const handler = {
       }
     } else {
       console.log("ESP is ready to send next");
-      sendToSerial();
+      // sendToSerial();
     }
   },
   ACK: function (data) {
@@ -554,6 +555,8 @@ const handler = {
   },
 };
 
+let sendSerialInterval = setTimeout(sendToSerial, (Math.random() * 500) + 100)
+
 function bcastServer() {
   msg = {
     retires: 0,
@@ -564,7 +567,7 @@ function bcastServer() {
     },
   };
   TO_SEND_BUFF.push(msg);
-  sendToSerial();
+  // sendToSerial();
 }
 
 function echoServer(dest) {
@@ -579,7 +582,7 @@ function echoServer(dest) {
     },
   };
   TO_SEND_BUFF.push(msg);
-  sendToSerial();
+  // sendToSerial();
 }
 
 function nextMSG_ID() {
@@ -611,6 +614,7 @@ function sendToSerial() {
     console.log("ESP32 is not ready", TO_SEND_BUFF.length, "message in queue");
     PORT.flush();
   }
+  sendSerialInterval = setTimeout(sendToSerial, (Math.random() * 500) + 100)
 }
 
 function msgTimeout() {
@@ -645,7 +649,7 @@ function msgTimeout() {
 
           TO_SEND_BUFF.push(timedoutMsg);
           SENT_BUFF.splice(i, 1);
-          sendToSerial();
+          // sendToSerial();
         }
       }
     }
@@ -677,7 +681,7 @@ function sendFragment(dataStr, dest, _id, FLAG) {
     msg.msg.FRAG_ID = msg.msg.FRAG_ID++;
 
     TO_SEND_BUFF.push(msg);
-    sendToSerial();
+    // sendToSerial();
   }
 }
 
@@ -699,7 +703,7 @@ function sendSingle(dataStr, dest, _id, FLAG) {
   };
   console.log("sending to serial", msg);
   TO_SEND_BUFF.push(msg);
-  sendToSerial();
+  // sendToSerial();
 }
 
 function sendData(data, dest, _id) {
