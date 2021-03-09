@@ -384,19 +384,31 @@ const handler = {
         }
 
         break;
-      } else if (
-        data.ACK_FRAG_ID == msg.msg.FRAG_ID &&
-        data.ACK_MSG_ID == msg.msg.MSG_ID
-      ) {
-        console.log(
-          "ACK",
-          data.ACK_MSG_ID,
-          "FRAG",
-          data.ACK_FRAG_ID,
-          "RTT",
-          Date.now() - msg.timeSent
-        );
-        SENT_BUFF.splice(i, 1);
+      } else if (data.ACK_FRAG_ID == msg.msg.FRAG_ID && data.ACK_MSG_ID == msg.msg.MSG_ID) {
+        console.log("ACK", data.ACK_MSG_ID, "FRAG", data.ACK_FRAG_ID, "RTT", Date.now() - msg.timeSent);
+        SENT_BUFF[i].ACKED == true;
+
+        //check if all of the fragmented message was acked
+        fragLen = msg.msg.FRAG_LEN;
+        ackedCount = 0;
+        for (const [j, m] of SENT_BUFF.entries()){
+          if (data.ACK_MSG_ID == m.msg.MSG_ID && m.ACKED){
+            ackedCount += 1;
+          }
+          else if (data.ACK_MSG_ID == m.msg.MSG_ID && !m.ACKED){
+            break;
+          }
+        }
+
+        if (ackedCount == msg.msg.FRAG_LEN) {
+          for (const [j, m] of SENT_BUFF.entries()){
+            if (data.ACK_MSG_ID == m.msg.MSG_ID) {
+              SENT_BUFF.splice(j,1);
+            }
+          }
+          console.log('ACKED ALL FRAG',data.ACK_MSG_ID, 'LENGTH', msg.msg.FRAG_LEN)
+        }
+        // SENT_BUFF.splice(i, 1);
         break;
       }
     }
@@ -665,6 +677,7 @@ function sendFragment(dataStr, dest, _id, FLAG) {
     to: dest,
     id: _id,
     FFLAG: FLAG,
+    ACKED: false,
     msg: {
       MSG_ID: nextMSG_ID(),
       FLAG: "DATA",
