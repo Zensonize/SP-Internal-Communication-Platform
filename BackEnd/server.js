@@ -311,19 +311,18 @@ const handler = {
     isFree = true;
     if (!data.SUCCESS) {
       recentSend = SENT_BUFF.pop();
-      if (recentSend.retires >= 3) {
-        console.error(
-          "ESP failed to send",
-          recentSend.msg.MSG_ID,
-          "because the node is offline"
-        );
-      } else {
-        // console.log('ESP will retires to send within', TO_SEND_BUFF.length)
-        // TO_SEND_BUFF.push(recentSend);
-        // sendToSerial();
+      // console.log('ESP will retires to send within', TO_SEND_BUFF.length)
+      // TO_SEND_BUFF.push(recentSend);
+      // sendToSerial();
+      if (recentSend.msg.FLAG === "PING") {
+        setTimeout(serverOfflineRoutine, 5000, recentSend.to)
+      }
+      else {
+        console.error("ESP failed to send",recentSend.msg.MSG_ID,"because the node is offline");
         ALL_NODE[recentSend.to].status = "OFFLINE";
         ALL_SERVER[recentSend.to].status = "OFFLINE";
         console.log("Server", ALL_SERVER[recentSend.to].name, "went OFFLINE");
+        setTimeout(serverOfflineRoutine, 5000, recentSend.to)
       }
     } else {
       console.log("ESP is ready to send next");
@@ -419,30 +418,19 @@ const handler = {
     console.log("TOPOLOGY: ", TOPOLOGY);
     NODE_LIST.splice(NODE_LIST.indexOf(selfID), 1);
 
-    console.log("ALL_NODE BEFORE", ALL_NODE);
-    console.log("ALL_SERVER BEFORE", ALL_SERVER);
+    // console.log("ALL_NODE BEFORE", ALL_NODE);
+    // console.log("ALL_SERVER BEFORE", ALL_SERVER);
 
     //update status of the node
     for (var key in ALL_NODE) {
-      console.log("KEY", key, "data in ALL_NODE", ALL_NODE[key]);
+      // console.log("KEY", key, "data in ALL_NODE", ALL_NODE[key]);
       if (NODE_LIST.indexOf(key) >= 0) {
-        console.log(
-          "KEY",
-          key,
-          "data in ALL_NODE",
-          ALL_NODE[key],
-          "Key already included"
-        );
+        // console.log("KEY",key,"data in ALL_NODE",ALL_NODE[key],"Key already included");
         if (ALL_NODE[key].status === "OFFLINE") {
           if (key in ALL_SERVER) {
-            console.log("KEY", key, "data in ALL_SERVER", ALL_SERVER[key]);
+            // console.log("KEY", key, "data in ALL_SERVER", ALL_SERVER[key]);
             ALL_SERVER[key].status = "ONLINE";
-            console.log(
-              "notice: server",
-              key,
-              ALL_SERVER[key].name,
-              "back online"
-            );
+            console.log("notice: server", key, ALL_SERVER[key].name, "back online");
           } else {
             console.log("notice: node", key, "back online");
           }
@@ -453,12 +441,8 @@ const handler = {
         if (ALL_NODE[key].status === "ONLINE") {
           if (key in ALL_SERVER) {
             ALL_SERVER[key].status = "OFFLINE";
-            console.log(
-              "notice: server",
-              key,
-              ALL_SERVER[key].name,
-              "went offline"
-            );
+            console.log("notice: server", key, ALL_SERVER[key].name, "went offline");
+            setTimeout(serverOfflineRoutine, 5000, key)
           } else {
             console.log("notice: node", key, "went offline");
           }
@@ -467,12 +451,12 @@ const handler = {
       }
     }
 
-    console.log("ALL_NODE new Status", ALL_NODE);
-    console.log("ALL_SERVER new Status", ALL_SERVER);
+    // console.log("ALL_NODE new Status", ALL_NODE);
+    // console.log("ALL_SERVER new Status", ALL_SERVER);
 
     //add new node to database
     NODE_LIST.forEach((item, index) => {
-      console.log("NEW NODE", item, "index", index);
+      console.log("NEW NODE", item, "index", index, 'ONLINE');
       ALL_NODE[item] = {
         status: "ONLINE",
       };
@@ -489,8 +473,8 @@ const handler = {
       echoServer(item);
     });
 
-    console.log("ALL_NODE AFTER", ALL_NODE);
-    console.log("ALL_SERVER AFTER", ALL_SERVER);
+    // console.log("ALL_NODE AFTER", ALL_NODE);
+    // console.log("ALL_SERVER AFTER", ALL_SERVER);
     // bcastServer();
   },
   DATA: function (data) {
@@ -565,13 +549,20 @@ const handler = {
     selfID = data.NODE_ID;
     console.log("INIT SELF ID", selfID);
   },
+  PONG: function (data) {
+    if (data.FROM in ALL_SERVER) {
+      if (ALL_SERVER[data.FROM].status === "OFFLINE") {
+        console.warn("Server", ALL_SERVER[data.FROM].name, "back online");
+      }
+      ALL_SERVER[data.FROM].status = "ONLINE";
+    }
+  }
 };
 
 let sendSerialInterval = setTimeout(sendToSerial, (Math.random() * 500) + 100)
 
 function bcastServer() {
   msg = {
-    retires: 0,
     msg: {
       MSG_ID: nextMSG_ID(),
       FLAG: "ECHO",
@@ -584,7 +575,6 @@ function bcastServer() {
 
 function echoServer(dest) {
   msg = {
-    retires: 0,
     msg: {
       MSG_ID: nextMSG_ID(),
       FLAG: "ECHO",
@@ -615,7 +605,6 @@ function sendToSerial() {
     console.log(msgToSend);
     PORT.write(JSON.stringify(msgToSend.msg));
     msgToSend.timeSent = Date.now();
-    msgToSend.retires += 1;
     SENT_BUFF.push(msgToSend);
 
     //set routine to track message timeout
@@ -635,7 +624,7 @@ function msgTimeout() {
     timeoutRoutine = null;
   } else {
     for (const [i, msg] of SENT_BUFF.entries()) {
-      if (msg.msg.FLAG === "ECHO") {
+      if (msg.msg.FLAG === "ECHO" || msg.msg.FLAG === "PING") {
         SENT_BUFF.splice(i, 1);
       } else if (Date.now() - msg.timeSent >= config.TIMEOUT) {
         currentTime = Date.now();
@@ -672,7 +661,6 @@ function sendFragment(dataStr, dest, _id, FLAG) {
   dataFrag = chunkSubstr(dataStr, config.MTU);
 
   msg = {
-    retires: 0,
     timedout: 0,
     to: dest,
     id: _id,
@@ -700,7 +688,6 @@ function sendFragment(dataStr, dest, _id, FLAG) {
 
 function sendSingle(dataStr, dest, _id, FLAG) {
   msg = {
-    retires: 0,
     timedout: 0,
     to: dest,
     id: _id,
@@ -809,4 +796,21 @@ function initNodeList() {
     console.log("SERVER LIST", SERVER_LIST);
     console.log("ALL SERVER", ALL_SERVER);
   });
+}
+
+function serverOfflineRoutine(dest) {
+  if (ALL_SERVER[dest].status === "OFFLINE") {
+    msg = {
+      timedout: 0,
+      to: dest,
+      msg: {
+        MSG_ID: nextMSG_ID(),
+        FLAG: "PING",
+        TOA: convertDstAddr(dest)[0],
+        TOB: convertDstAddr(dest)[1],
+      },
+    };
+    console.log("pinging to", dest);
+    TO_SEND_BUFF.unshift(msg);
+  }
 }
