@@ -598,19 +598,38 @@ function nextMSG_ID() {
 }
 
 function sendToSerial() {
+  let msgToSend = null
   if (isFree && TO_SEND_BUFF.length) {
     isFree = false;
-    msgToSend = TO_SEND_BUFF.shift();
-    console.log("sending", msgToSend.msg.FLAG, "ID:", msgToSend.msg.MSG_ID);
-    console.log(msgToSend);
-    PORT.write(JSON.stringify(msgToSend.msg));
-    msgToSend.timeSent = Date.now();
-    SENT_BUFF.push(msgToSend);
-
-    //set routine to track message timeout
-    if (timeoutRoutine == null) {
-      timeoutRoutine = setInterval(msgTimeout, 500);
+    let shiftCount = 0
+    while (true) {
+      shiftCount += 1;
+      let selectedMsg = TO_SEND_BUFF.shift()
+      if (ALL_SERVER[selectedMsg.to].status === "ONLINE") {
+        msgToSend = selectedMsg;
+        break;
+      }
+      else {
+        TO_SEND_BUFF.push(msgToSend);
+        if (shiftCount == TO_SEND_BUFF.length) {
+          break;
+        }
+      }
     }
+    // msgToSend = TO_SEND_BUFF.shift();
+    if (msgToSend != null){
+      console.log("sending", msgToSend.msg.FLAG, "ID:", msgToSend.msg.MSG_ID);
+      console.log(msgToSend);
+      PORT.write(JSON.stringify(msgToSend.msg));
+      msgToSend.timeSent = Date.now();
+      SENT_BUFF.push(msgToSend);
+
+      //set routine to track message timeout
+      if (timeoutRoutine == null) {
+        timeoutRoutine = setInterval(msgTimeout, 500);
+      }
+    }
+    
   } else if (!isFree) {
     console.log("ESP32 is not ready", TO_SEND_BUFF.length, "message in queue");
     PORT.flush();
