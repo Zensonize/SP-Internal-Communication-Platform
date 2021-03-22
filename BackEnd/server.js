@@ -311,43 +311,27 @@ const handler = {
     isFree = true;
     if (!data.SUCCESS) {
       recentSend = SENT_BUFF.pop();
-      if (recentSend.retires >= 3) {
-        console.error(
-          "ESP failed to send",
-          recentSend.msg.MSG_ID,
-          "because the node is offline"
-        );
-        exportCSV_SEND(recentSend, null,Date.now(),false, true);
-            
-      } else {
-        // console.log('ESP will retires to send within', TO_SEND_BUFF.length)
-        // TO_SEND_BUFF.push(recentSend);
-        // sendToSerial();
-        exportCSV_SEND(recentSend, null,Date.now(),false, true);
-            
-      // console.log('ESP will retires to send within', TO_SEND_BUFF.length)
-      // TO_SEND_BUFF.push(recentSend);
-      // sendToSerial();
-      if (recentSend.msg.FLAG === "PING") {
-        setTimeout(serverOfflineRoutine, 5000, recentSend.to)
-      }
-      else {
-        console.error("ESP failed to send",recentSend.msg.MSG_ID,"because the node is offline");
-        ALL_NODE[recentSend.to].status = "OFFLINE";
-        ALL_SERVER[recentSend.to].status = "OFFLINE";
-        console.log("Server", ALL_SERVER[recentSend.to].name, "went OFFLINE");
-        setTimeout(serverOfflineRoutine, 5000, recentSend.to)
-      }
-    } else {
-      console.log("ESP is ready to send next");
-      // sendToSerial();
-    }
+      console.error("ESP failed to send", recentSend.msg.MSG_ID, "because the node is offline");
+
+      exportCSV_SEND(recentSend, Date.now(),false, true);
+
+      ALL_NODE[recentSend.to].status = "OFFLINE";
+      ALL_SERVER[recentSend.to].status = "OFFLINE";
+      console.log("Server", ALL_SERVER[recentSend.to].name, "went OFFLINE");
+  } 
+  else {
+    console.log("ESP is ready to send next");
+  }
   },
   ACK: function (data) {
+    let ACKREVTIME = Date.now();
+
     for (const [i, msg] of SENT_BUFF.entries()) {
       if (data.ACK_FRAG_ID == -1 && data.ACK_MSG_ID == msg.msg.MSG_ID) {
-        console.log("ACK", data.ACK_MSG_ID, "RTT", Date.now() - msg.timeSent);
+        console.log("ACK", data.ACK_MSG_ID, "RTT", ACKREVTIME - msg.timeSent);
         SENT_BUFF.splice(i, 1);
+        
+        exportCSV_SEND(msg,ACKREVTIME,false,false);
 
         //tag db that this message is sent
         // originalData = JSON.parse(msg.msg.DATA);
@@ -398,8 +382,10 @@ const handler = {
 
         break;
       } else if (data.ACK_FRAG_ID == msg.msg.FRAG_ID && data.ACK_MSG_ID == msg.msg.MSG_ID) {
-        console.log("ACK", data.ACK_MSG_ID, "FRAG", data.ACK_FRAG_ID, "RTT", Date.now() - msg.timeSent);
+        console.log("ACK", data.ACK_MSG_ID, "FRAG", data.ACK_FRAG_ID, "RTT", ACKREVTIME - msg.timeSent);
         SENT_BUFF[i].ACKED == true;
+
+        exportCSV_SEND(msg,ACKREVTIME,false,false);
 
         //check if all of the fragmented message was acked
         fragLen = msg.msg.FRAG_LEN;
@@ -456,7 +442,7 @@ const handler = {
           if (key in ALL_SERVER) {
             ALL_SERVER[key].status = "OFFLINE";
             console.log("notice: server", key, ALL_SERVER[key].name, "went offline");
-            setTimeout(serverOfflineRoutine, 5000, key)
+            
           } else {
             console.log("notice: node", key, "went offline");
           }
@@ -563,30 +549,10 @@ const handler = {
     console.log(data);
     selfID = data.NODE_ID;
     console.log("INIT SELF ID", selfID);
-  },
-  PONG: function (data) {
-    if (data.FROM in ALL_SERVER) {
-      if (ALL_SERVER[data.FROM].status === "OFFLINE") {
-        console.warn("Server", ALL_SERVER[data.FROM].name, "back online");
-      }
-      ALL_SERVER[data.FROM].status = "ONLINE";
-    }
   }
 };
 
 let sendSerialInterval = setTimeout(sendToSerial, (Math.random() * 500) + 100)
-
-function bcastServer() {
-  msg = {
-    msg: {
-      MSG_ID: nextMSG_ID(),
-      FLAG: "ECHO",
-      SERVER_NAME: "SERVER A",
-    },
-  };
-  TO_SEND_BUFF.push(msg);
-  // sendToSerial();
-}
 
 function echoServer(dest) {
   msg = {
@@ -599,7 +565,6 @@ function echoServer(dest) {
     },
   };
   TO_SEND_BUFF.push(msg);
-  // sendToSerial();
 }
 
 function nextMSG_ID() {
@@ -645,9 +610,10 @@ function sendToSerial() {
       }
     }
     
-  } else if (!isFree) {
+  } else if (!isFree && TO_SEND_BUFF.length) {
     console.log("ESP32 is not ready", TO_SEND_BUFF.length, "message in queue");
-    PORT.flush();
+  } else {
+    console.log("nothing to send");
   }
   sendSerialInterval = setTimeout(sendToSerial, (Math.random() * 500) + 100)
 }
@@ -658,33 +624,22 @@ function msgTimeout() {
     timeoutRoutine = null;
   } else {
     for (const [i, msg] of SENT_BUFF.entries()) {
-      if (msg.msg.FLAG === "ECHO" || msg.msg.FLAG === "PING") {
+      if (msg.msg.FLAG === "ECHO") {
         SENT_BUFF.splice(i, 1);
       } else if (Date.now() - msg.timeSent >= config.TIMEOUT) {
         currentTime = Date.now();
         var timedoutMsg = msg;
+
+        exportCSV_SEND(timedoutMsg,Date.now(),true, false);
+
         timedoutMsg.timedout += 1;
 
         if (timedoutMsg.timedout >= 5) {
-          console.log(
-            "TIMEDOUT:",
-            timedoutMsg.msg.MSG_ID,
-            "discarded this message",
-            (currentTime - msg.timeSent) / 1000,
-            "sec"
-          );
+          console.log("TIMEDOUT:",timedoutMsg.msg.MSG_ID,"discarded this message at",(currentTime - msg.timeSent) / 1000,"sec");
         } else {
-          console.log(
-            "TIMEDOUT:",
-            timedoutMsg.msg.MSG_ID,
-            "retry sending",
-            (currentTime - msg.timeSent) / 1000,
-            "sec"
-          );
-
+          console.log("TIMEDOUT:",timedoutMsg.msg.MSG_ID,"will retry sending",(currentTime - msg.timeSent) / 1000,"sec");
           TO_SEND_BUFF.push(timedoutMsg);
           SENT_BUFF.splice(i, 1);
-          // sendToSerial();
         }
       }
     }
@@ -716,7 +671,6 @@ function sendFragment(dataStr, dest, _id, FLAG) {
     msg.msg.FRAG_ID = msg.msg.FRAG_ID++;
 
     TO_SEND_BUFF.push(msg);
-    // sendToSerial();
   }
 }
 
@@ -737,7 +691,6 @@ function sendSingle(dataStr, dest, _id, FLAG) {
   };
   console.log("sending to serial", msg);
   TO_SEND_BUFF.push(msg);
-  // sendToSerial();
 }
 
 function sendData(data, dest, _id) {
@@ -832,20 +785,18 @@ function initNodeList() {
   });
 }
 
-
-function exportCSV_RECV(data){
+function exportCSV_RECV(data, recvTime){
   csvWriter_RECV.writeRecords([
       {
           'MSG_ID': data.MSG_ID,
           'FRAG_ID': data.FRAG_ID,
           'DATA_LEN': data.DATA.length,
-          'timeSent': data.sendTime,
-          'timeRecv': data.recvTime
+          'timeRecv': recvTime
       }
   ])
 }
 
-function exportCSV_SEND(data,ack,currentTime,isTimedOut,isError){
+function exportCSV_SEND(data,currentTime,isTimedOut,isError){
   if(isTimedOut){
       csvWriter_SEND.writeRecords([
           {
@@ -854,8 +805,8 @@ function exportCSV_SEND(data,ack,currentTime,isTimedOut,isError){
               'DATA_LEN': data.msg.DATA.length,
               'ERROR': 'TIMEDOUT',
               'retires': data.retires,
-              'timeFrontendSend': data.timeSent,
-              'timeFrontendRecv': currentTime
+              'timeSend': data.timeSent,
+              'timeAckRecv': currentTime
           }
       ])
   }
@@ -867,8 +818,8 @@ function exportCSV_SEND(data,ack,currentTime,isTimedOut,isError){
               'DATA_LEN': data.msg.DATA.length,
               'ERROR': 'ESP32',
               'retires': data.retires,
-              'timeFrontendSend': data.timeSent,
-              'timeFrontendRecv': currentTime
+              'timeSend': data.timeSent,
+              'timeAckRecv': "-"
           }
       ])
   }
@@ -881,10 +832,8 @@ function exportCSV_SEND(data,ack,currentTime,isTimedOut,isError){
               'DATA_LEN': data.msg.DATA.length,
               'ERROR': 'NONE',
               'retires': data.retires,
-              'timeSentACK': ack.sendTime,
-              'timeRecvACK': ack.recvTime,
-              'timeFrontendSend': data.timeSent,
-              'timeFrontendRecv': currentTime
+              'timeSend': data.timeSent,
+              'timeAckRecv': currentTime
           }
       ])
   }
@@ -919,10 +868,8 @@ header: [
   {id: 'DATA_LEN', title: 'DATA_LEN'},
   {id: 'ERROR', title: 'ERROR'},
   {id: 'retires', title: 'retires'},
-  {id: 'timeSentACK', title: 'timeSentACK'},
-  {id: 'timeRecvACK', title: 'timeRecvACK'},
-  {id: 'timeFrontendSend', title: 'timeFrontendSend'},
-  {id: 'timeFrontendRecv', title: 'timeFrontendRecv'}
+  {id: 'timeAckRecv', title: 'timeAckRecv'},
+  {id: 'timeSend', title: 'timeSend'}
 ]
 });
 
@@ -937,19 +884,3 @@ header: [
   {id: 'timeRecv', title: 'timeRecv'},
 ]
 });
-function serverOfflineRoutine(dest) {
-  if (ALL_SERVER[dest].status === "OFFLINE") {
-    msg = {
-      timedout: 0,
-      to: dest,
-      msg: {
-        MSG_ID: nextMSG_ID(),
-        FLAG: "PING",
-        TOA: convertDstAddr(dest)[0],
-        TOB: convertDstAddr(dest)[1],
-      },
-    };
-    console.log("pinging to", dest);
-    TO_SEND_BUFF.unshift(msg);
-  }
-}
