@@ -18,13 +18,6 @@ void sendACK(uint32_t to, int msgID, int fragID) {
   mesh.sendSingle(to, JSON.stringify(ackMSG));
 }
 
-void sendPONG(uint32_t to) {
-  JSONVar pongMSG;
-  pongMSG["FLAG"] = "PONG";
-
-  mesh.sendSingle(to, JSON.stringify(pongMSG));
-}
-
 void receivedCallback( uint32_t from, String &msg ) {
   digitalWrite(ONBOARD_LED,HIGH);
   JSONVar recv = JSON.parse(msg.c_str());
@@ -32,10 +25,7 @@ void receivedCallback( uint32_t from, String &msg ) {
   recv["HEAP"] = String(ESP.getFreeHeap());
 
   String flag = (const char*) recv["FLAG"];
-  if (flag.equals("PING")) {
-    sendPONG(from);
-  }
-  else if (flag.equals("DATA")){
+  if (flag.equals("DATA")){
     if ((bool) recv["FRAG"]) {
       sendACK(from, (int) recv["MSG_ID"], (int) recv["FRAG_ID"]);
     }
@@ -139,6 +129,13 @@ void backendInit(){
   sysinit["NODE_ID"] = String(mesh.getNodeId());
 
   Serial.println(JSON.stringify(sysinit));
+
+  JSONVar sentSuccess;
+  sentSuccess["FLAG"] = "READY";
+  sentSuccess["SUCCESS"] = true;
+  sentSuccess["HEAP"] = String(ESP.getFreeHeap());
+  
+  Serial.println(JSON.stringify(sentSuccess));
 }
 
 void setup() {
