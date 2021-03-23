@@ -336,6 +336,7 @@ const handler = {
     }
 
     if(TO_SEND_BUFF.length){
+      sendSerialInterval = null;
       setSerialRoutine();
     } else {
       sendSerialInterval = null;
@@ -449,6 +450,9 @@ const handler = {
             // console.log("KEY", key, "data in ALL_SERVER", ALL_SERVER[key]);
             ALL_SERVER[key].status = "ONLINE";
             console.log("notice: server", key, ALL_SERVER[key].name, "back online");
+            if(TO_SEND_BUFF.length){
+              setSerialRoutine();
+            }
           } else {
             console.log("notice: node", key, "back online");
           }
@@ -633,6 +637,10 @@ function sendToSerial() {
       if (timeoutRoutine == null) {
         timeoutRoutine = setInterval(msgTimeout, 500);
       }
+    }
+    else {
+      console.log("nothing to send all server is offline", TO_SEND_BUFF.length, 'msg in queue');
+      sendSerialInterval = null;
     }
     
   } else if (!isFree && TO_SEND_BUFF.length) {
