@@ -572,8 +572,8 @@ const handler = {
 
 let sendSerialInterval = null
 
-function sendSerialInterval() {
-  if (timeoutRoutine == null){
+function setSerialRoutine() {
+  if (sendSerialInterval == null){
     sendSerialInterval = setTimeout(sendToSerial, (Math.random() * 700) + 250)
   }
 }
