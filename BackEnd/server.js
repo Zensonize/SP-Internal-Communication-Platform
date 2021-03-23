@@ -2,6 +2,15 @@ var app = require("express")();
 var config = require("./config");
 var schema = require("./db/schema");
 const os = require('os');
+
+const bytesToSize = (bytes) => {
+  const sizes = ['Bytes', 'KiB', 'MiB', 'GiB'];
+  if (bytes == 0) return '0 Byte';
+  const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
+  return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i];
+  };
+  
+  
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", config.host);
   res.header(
@@ -315,7 +324,7 @@ const handler = {
       recentSend = SENT_BUFF.pop();
       console.error("ESP failed to send", recentSend.msg.MSG_ID, "because the node is offline");
 
-      exportCSV_SEND(recentSend, Date.now(),false, true,data.HEAP);
+      exportCSV_SEND(recentSend, Date.now(),false, true,data.HEAP,bytesToSize(os.freemem()));
 
       ALL_NODE[recentSend.to].status = "OFFLINE";
       ALL_SERVER[recentSend.to].status = "OFFLINE";
@@ -340,7 +349,7 @@ const handler = {
         console.log("ACK", data.ACK_MSG_ID, "RTT", ACKREVTIME - msg.timeSent);
         SENT_BUFF.splice(i, 1);
         
-        exportCSV_SEND(msg,ACKREVTIME,false,false,data.HEAP);
+        exportCSV_SEND(msg,ACKREVTIME,false,false,data.HEAP,bytesToSize(os.freemem()));
 
         //tag db that this message is sent
         // originalData = JSON.parse(msg.msg.DATA);
@@ -394,7 +403,7 @@ const handler = {
         console.log("ACK", data.ACK_MSG_ID, "FRAG", data.ACK_FRAG_ID, "RTT", ACKREVTIME - msg.timeSent);
         SENT_BUFF[i].ACKED == true;
 
-        exportCSV_SEND(msg,ACKREVTIME,false,false,data.HEAP);
+        exportCSV_SEND(msg,ACKREVTIME,false,false,data.HEAP,bytesToSize(os.freemem()));
 
         //check if all of the fragmented message was acked
         fragLen = msg.msg.FRAG_LEN;
@@ -644,7 +653,7 @@ function msgTimeout() {
         currentTime = Date.now();
         var timedoutMsg = msg;
 
-        exportCSV_SEND(timedoutMsg,Date.now(),true, false,null);
+        exportCSV_SEND(timedoutMsg,Date.now(),true, false,null,bytesToSize(os.freemem()));
 
         timedoutMsg.timedout += 1;
 
@@ -802,13 +811,7 @@ function initNodeList() {
   });
 }
 
-const bytesToSize = (bytes) => {
-  const sizes = ['Bytes', 'KiB', 'MiB', 'GiB'];
-  if (bytes == 0) return '0 Byte';
-  const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
-  return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i];
-  };
-  
+
   //  console.log('free memory : ', bytesToSize(os.freemem()));
   //  console.log('total memory : ', bytesToSize(os.totalmem()));
 
@@ -825,7 +828,7 @@ function exportCSV_RECV(data, recvTime){
   ])
 }
 
-function exportCSV_SEND(data,currentTime,isTimedOut,isError,HEAP){
+function exportCSV_SEND(data,currentTime,isTimedOut,isError,HEAP,FREE){
   if(isTimedOut){
       csvWriter_SEND.writeRecords([
           {
@@ -837,7 +840,7 @@ function exportCSV_SEND(data,currentTime,isTimedOut,isError,HEAP){
               'timeSend': data.timeSent,
               'timeAckRecv': currentTime,
               'HEAP':'-',
-              'Free_Mem':bytesToSize(os.freemem())
+              'Free_Mem':FREE
           }
       ])
   }
