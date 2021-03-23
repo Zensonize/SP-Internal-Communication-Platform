@@ -318,7 +318,6 @@ const handler = {
     }
   },
   READY: function (data) {
-    isFree = true;
 
     if (!data.SUCCESS) {
       recentSend = SENT_BUFF.pop();
@@ -578,7 +577,7 @@ let sendSerialInterval = null
 
 function setSerialRoutine() {
   if (sendSerialInterval == null){
-    sendSerialInterval = setTimeout(sendToSerial, (Math.random() * 700) + 250)
+    sendSerialInterval = setTimeout(sendToSerial, (Math.random() * 500) + 150)
   }
 }
 
@@ -608,21 +607,35 @@ function nextMSG_ID() {
 
 function sendToSerial() {
   let msgToSend = null
-  if (isFree && TO_SEND_BUFF.length) {
-    isFree = false;
+  if (TO_SEND_BUFF.length) {
     let shiftCount = 0
     while (true) {
       shiftCount += 1;
-      let selectedMsg = TO_SEND_BUFF.shift()
-      if (ALL_SERVER[selectedMsg.to].status === "ONLINE") {
-        msgToSend = selectedMsg;
-        break;
-      }
-      else {
-        TO_SEND_BUFF.push(msgToSend);
-        if (shiftCount == TO_SEND_BUFF.length) {
+      let selectedMsg = JSON.parse(JSON.stringify(TO_SEND_BUFF[0]))
+      
+      try {
+        if (selectedMsg.msg.FLAG == 'ECHO'){
+          msgToSend = selectedMsg;
+          TO_SEND_BUFF.splice(0,1);
           break;
         }
+        else if (ALL_SERVER[selectedMsg.to].status === "ONLINE") {
+          msgToSend = selectedMsg;
+          TO_SEND_BUFF.splice(0,1);
+          break;
+        }
+        else {
+          TO_SEND_BUFF.push(selectedMsg);
+          TO_SEND_BUFF.splice(0,1);
+          if (shiftCount == TO_SEND_BUFF.length) {
+            break;
+          }
+        }
+      } catch (err){
+        console.log(`err ${err} \n, ${selectedMsg},to send buff len ${TO_SEND_BUFF.length}`)
+        console.log('to send bugg', TO_SEND_BUFF)
+        console.log('AllServer', ALL_SERVER)
+        break
       }
     }
     // msgToSend = TO_SEND_BUFF.shift();
@@ -643,7 +656,7 @@ function sendToSerial() {
       sendSerialInterval = null;
     }
     
-  } else if (!isFree && TO_SEND_BUFF.length) {
+  } else if (TO_SEND_BUFF.length) {
     console.log("ESP32 is not ready", TO_SEND_BUFF.length, "message in queue");
   }
 
