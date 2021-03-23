@@ -2,6 +2,15 @@ var app = require("express")();
 var config = require("./config");
 var schema = require("./db/schema");
 const os = require('os');
+
+const bytesToSize = (bytes) => {
+  const sizes = ['Bytes', 'KiB', 'MiB', 'GiB'];
+  if (bytes == 0) return '0 Byte';
+  const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
+  return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i];
+  };
+  
+  
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", config.host);
   res.header(
@@ -784,13 +793,7 @@ function initNodeList() {
   });
 }
 
-const bytesToSize = (bytes) => {
-  const sizes = ['Bytes', 'KiB', 'MiB', 'GiB'];
-  if (bytes == 0) return '0 Byte';
-  const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
-  return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i];
-  };
-  
+
   //  console.log('free memory : ', bytesToSize(os.freemem()));
   //  console.log('total memory : ', bytesToSize(os.totalmem()));
 
