@@ -310,6 +310,7 @@ const handler = {
   },
   READY: function (data) {
     isFree = true;
+
     if (!data.SUCCESS) {
       recentSend = SENT_BUFF.pop();
       console.error("ESP failed to send", recentSend.msg.MSG_ID, "because the node is offline");
@@ -319,10 +320,17 @@ const handler = {
       ALL_NODE[recentSend.to].status = "OFFLINE";
       ALL_SERVER[recentSend.to].status = "OFFLINE";
       console.log("Server", ALL_SERVER[recentSend.to].name, "went OFFLINE");
-  } 
-  else {
-    console.log("ESP is ready to send next");
-  }
+      
+    } 
+    else {
+      console.log("ESP is ready to send next");
+    }
+
+    if(TO_SEND_BUFF.length){
+      setSerialRoutine();
+    } else {
+      sendSerialInterval = null;
+    }
   },
   ACK: function (data) {
     let ACKREVTIME = Date.now();
@@ -553,7 +561,13 @@ const handler = {
   }
 };
 
-let sendSerialInterval = setTimeout(sendToSerial, (Math.random() * 500) + 100)
+let sendSerialInterval = null
+
+function sendSerialInterval() {
+  if (timeoutRoutine == null){
+    sendSerialInterval = setTimeout(sendToSerial, (Math.random() * 700) + 250)
+  }
+}
 
 function echoServer(dest) {
   msg = {
@@ -566,6 +580,7 @@ function echoServer(dest) {
     },
   };
   TO_SEND_BUFF.push(msg);
+  setSerialRoutine();
 }
 
 function nextMSG_ID() {
@@ -613,8 +628,8 @@ function sendToSerial() {
     
   } else if (!isFree && TO_SEND_BUFF.length) {
     console.log("ESP32 is not ready", TO_SEND_BUFF.length, "message in queue");
-  } 
-  sendSerialInterval = setTimeout(sendToSerial, (Math.random() * 700) + 250)
+  }
+
 }
 
 function msgTimeout() {
@@ -639,6 +654,7 @@ function msgTimeout() {
           console.log("TIMEDOUT:",timedoutMsg.msg.MSG_ID,"will retry sending",(currentTime - msg.timeSent) / 1000,"sec");
           TO_SEND_BUFF.push(timedoutMsg);
           SENT_BUFF.splice(i, 1);
+          setSerialRoutine();
         }
       }
     }
@@ -670,6 +686,7 @@ function sendFragment(dataStr, dest, _id, FLAG) {
     msg.msg.FRAG_ID = msg.msg.FRAG_ID++;
 
     TO_SEND_BUFF.push(msg);
+    setSerialRoutine();
   }
 }
 
@@ -690,6 +707,7 @@ function sendSingle(dataStr, dest, _id, FLAG) {
   };
   // console.log("sending to serial", msg);
   TO_SEND_BUFF.push(msg);
+  setSerialRoutine();
 }
 
 function sendData(data, dest, _id) {
