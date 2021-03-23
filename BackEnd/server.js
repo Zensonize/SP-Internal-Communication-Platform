@@ -1,6 +1,7 @@
 var app = require("express")();
 var config = require("./config");
 var schema = require("./db/schema");
+const os = require('os');
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", config.host);
   res.header(
@@ -207,7 +208,7 @@ io.on("connection", (socket) => {
     socket.join(room, () => {
       save_msg.save((err, result) => {
         if (err) throw err;
-        console.log(result);
+        // console.log(result);
         msg_room_2.push(result);
         io.to(room).emit("msg_room", result);
 
@@ -313,7 +314,7 @@ const handler = {
       recentSend = SENT_BUFF.pop();
       console.error("ESP failed to send", recentSend.msg.MSG_ID, "because the node is offline");
 
-      exportCSV_SEND(recentSend, Date.now(),false, true);
+      exportCSV_SEND(recentSend, Date.now(),false, true,data.HEAP);
 
       ALL_NODE[recentSend.to].status = "OFFLINE";
       ALL_SERVER[recentSend.to].status = "OFFLINE";
@@ -331,7 +332,7 @@ const handler = {
         console.log("ACK", data.ACK_MSG_ID, "RTT", ACKREVTIME - msg.timeSent);
         SENT_BUFF.splice(i, 1);
         
-        exportCSV_SEND(msg,ACKREVTIME,false,false);
+        exportCSV_SEND(msg,ACKREVTIME,false,false,data.HEAP);
 
         //tag db that this message is sent
         // originalData = JSON.parse(msg.msg.DATA);
@@ -385,7 +386,7 @@ const handler = {
         console.log("ACK", data.ACK_MSG_ID, "FRAG", data.ACK_FRAG_ID, "RTT", ACKREVTIME - msg.timeSent);
         SENT_BUFF[i].ACKED == true;
 
-        exportCSV_SEND(msg,ACKREVTIME,false,false);
+        exportCSV_SEND(msg,ACKREVTIME,false,false,data.HEAP);
 
         //check if all of the fragmented message was acked
         fragLen = msg.msg.FRAG_LEN;
@@ -478,11 +479,11 @@ const handler = {
     // bcastServer();
   },
   DATA: function (data) {
-    exportCSV_RECV(data);
+    exportCSV_RECV(data, Date.now());
     if (!data.FRAG) {
       console.log("RECEIVED ", data.MSG_ID, "ESP HEAP: ", data.HEAP);
-      console.log("msg is: ", data.DATA);
-      console.log("send msg to: ", present_room_id);
+      // console.log("msg is: ", data.DATA);
+      // console.log("send msg to: ", present_room_id);
       var extract_json_obj = JSON.parse(data.DATA);
       // console.log(extract_json_obj)
       if (extract_json_obj.FLAG === "msg") {
@@ -598,8 +599,8 @@ function sendToSerial() {
     }
     // msgToSend = TO_SEND_BUFF.shift();
     if (msgToSend != null){
-      console.log("sending", msgToSend.msg.FLAG, "ID:", msgToSend.msg.MSG_ID);
-      console.log(msgToSend);
+      console.log("\t sending", msgToSend.msg.FLAG, "ID:", msgToSend.msg.MSG_ID);
+      // console.log(msgToSend);
       PORT.write(JSON.stringify(msgToSend.msg));
       msgToSend.timeSent = Date.now();
       SENT_BUFF.push(msgToSend);
@@ -612,10 +613,8 @@ function sendToSerial() {
     
   } else if (!isFree && TO_SEND_BUFF.length) {
     console.log("ESP32 is not ready", TO_SEND_BUFF.length, "message in queue");
-  } else {
-    console.log("nothing to send");
-  }
-  sendSerialInterval = setTimeout(sendToSerial, (Math.random() * 500) + 100)
+  } 
+  sendSerialInterval = setTimeout(sendToSerial, (Math.random() * 700) + 250)
 }
 
 function msgTimeout() {
@@ -630,7 +629,7 @@ function msgTimeout() {
         currentTime = Date.now();
         var timedoutMsg = msg;
 
-        exportCSV_SEND(timedoutMsg,Date.now(),true, false);
+        exportCSV_SEND(timedoutMsg,Date.now(),true, false,null);
 
         timedoutMsg.timedout += 1;
 
@@ -689,13 +688,13 @@ function sendSingle(dataStr, dest, _id, FLAG) {
       TOB: convertDstAddr(dest)[1],
     },
   };
-  console.log("sending to serial", msg);
+  // console.log("sending to serial", msg);
   TO_SEND_BUFF.push(msg);
 }
 
 function sendData(data, dest, _id) {
   dataStr = JSON.stringify(data);
-  console.log("send", data, "to ", dest, "len", dataStr.length);
+  // console.log("send", data, "to ", dest, "len", dataStr.length);
   if (dataStr.length > config.MTU) {
     //send data in fragment
     if (dest === "ALL") {
@@ -728,7 +727,7 @@ function serialHandler(data) {
 }
 
 function convertDstAddr(dst) {
-  console.log(typeof dst);
+  // console.log(typeof dst);
   var lenA = dst.length - 5;
   toA = parseInt(dst.slice(0, lenA));
   toB = parseInt(dst.slice(-5));
@@ -785,18 +784,30 @@ function initNodeList() {
   });
 }
 
+const bytesToSize = (bytes) => {
+  const sizes = ['Bytes', 'KiB', 'MiB', 'GiB'];
+  if (bytes == 0) return '0 Byte';
+  const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
+  return Math.round(bytes / Math.pow(1024, i), 2) + ' ' + sizes[i];
+  };
+  
+  //  console.log('free memory : ', bytesToSize(os.freemem()));
+  //  console.log('total memory : ', bytesToSize(os.totalmem()));
+
 function exportCSV_RECV(data, recvTime){
   csvWriter_RECV.writeRecords([
       {
           'MSG_ID': data.MSG_ID,
           'FRAG_ID': data.FRAG_ID,
           'DATA_LEN': data.DATA.length,
-          'timeRecv': recvTime
+          'timeRecv': recvTime,
+          'HEAP': data.HEAP,
+          'Free_Mem': bytesToSize(os.freemem())
       }
   ])
 }
 
-function exportCSV_SEND(data,currentTime,isTimedOut,isError){
+function exportCSV_SEND(data,currentTime,isTimedOut,isError,HEAP){
   if(isTimedOut){
       csvWriter_SEND.writeRecords([
           {
@@ -806,7 +817,9 @@ function exportCSV_SEND(data,currentTime,isTimedOut,isError){
               'ERROR': 'TIMEDOUT',
               'retires': data.retires,
               'timeSend': data.timeSent,
-              'timeAckRecv': currentTime
+              'timeAckRecv': currentTime,
+              'HEAP':'-',
+              'Free_Mem':bytesToSize(os.freemem())
           }
       ])
   }
@@ -819,7 +832,9 @@ function exportCSV_SEND(data,currentTime,isTimedOut,isError){
               'ERROR': 'ESP32',
               'retires': data.retires,
               'timeSend': data.timeSent,
-              'timeAckRecv': "-"
+              'timeAckRecv': "-",
+              'HEAP':HEAP,
+              'Free_Mem':bytesToSize(os.freemem())
           }
       ])
   }
@@ -833,7 +848,9 @@ function exportCSV_SEND(data,currentTime,isTimedOut,isError){
               'ERROR': 'NONE',
               'retires': data.retires,
               'timeSend': data.timeSent,
-              'timeAckRecv': currentTime
+              'timeAckRecv': currentTime,
+              'HEAP':HEAP,
+              'Free_Mem':bytesToSize(os.freemem())
           }
       ])
   }
@@ -860,7 +877,7 @@ app.post('/longChat', function(req, res) {
 //function for logging data
 const createCSVWriter_SEND = require('csv-writer').createObjectCsvWriter;
 const csvWriter_SEND = createCSVWriter_SEND({
-path: 'log/10-MM_SEND_SERVERB.csv',
+path: '/home/ubuntu/log/10-MM_SEND_SERVERB.csv',
 header: [
   {id: 'MSG_ID', title: 'MSG_ID'},
   {id: 'FRAG_ID', title: 'FRAG_ID'},
@@ -869,18 +886,21 @@ header: [
   {id: 'ERROR', title: 'ERROR'},
   {id: 'retires', title: 'retires'},
   {id: 'timeAckRecv', title: 'timeAckRecv'},
-  {id: 'timeSend', title: 'timeSend'}
+  {id: 'timeSend', title: 'timeSend'},
+  {id: 'HEAP', title:'HEAP'},
+  {id: 'Free_Mem',titile:'Free_Mem'}
 ]
 });
 
 const createCSVWriter_RECV = require('csv-writer').createObjectCsvWriter;
 const csvWriter_RECV = createCSVWriter_RECV({
-path: 'log/10-MM_RECV_SERVERB.csv',
+path: '/home/ubuntu/log/10-MM_RECV_SERVERB.csv',
 header: [
   {id: 'MSG_ID', title: 'MSG_ID'},
   {id: 'FRAG_ID', title: 'FRAG_ID'},
   {id: 'DATA_LEN', title: 'DATA_LEN'},
-  {id: 'timeSent', title: 'timeSent'},
   {id: 'timeRecv', title: 'timeRecv'},
+  {id: 'HEAP', title:'HEAP'},
+  {id: 'Free_Mem',titile:'Free_Mem'}
 ]
 });
