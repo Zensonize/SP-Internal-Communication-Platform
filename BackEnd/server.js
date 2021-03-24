@@ -323,7 +323,7 @@ const handler = {
       recentSend = SENT_BUFF.pop();
       console.error("ESP failed to send", recentSend.msg.MSG_ID, "because the node is offline");
 
-      exportCSV_SEND(recentSend, Date.now(),false, true,data.HEAP,bytesToSize(os.freemem()));
+      exportCSV_SEND(recentSend, Date.now(),false, true,data.HEAP,bytesToSize(os.freemem()),console.log(os.cpus()),TO_SEND_BUFF.length);
 
       ALL_NODE[recentSend.to].status = "OFFLINE";
       ALL_SERVER[recentSend.to].status = "OFFLINE";
@@ -349,7 +349,7 @@ const handler = {
         console.log("ACK", data.ACK_MSG_ID, "RTT", ACKREVTIME - msg.timeSent);
         SENT_BUFF.splice(i, 1);
         
-        exportCSV_SEND(msg,ACKREVTIME,false,false,data.HEAP,bytesToSize(os.freemem()));
+        exportCSV_SEND(msg,ACKREVTIME,false,false,data.HEAP,bytesToSize(os.freemem()),console.log(os.cpus()),TO_SEND_BUFF.length);
 
         //tag db that this message is sent
         // originalData = JSON.parse(msg.msg.DATA);
@@ -403,7 +403,7 @@ const handler = {
         console.log("ACK", data.ACK_MSG_ID, "FRAG", data.ACK_FRAG_ID, "RTT", ACKREVTIME - msg.timeSent);
         SENT_BUFF[i].ACKED == true;
 
-        exportCSV_SEND(msg,ACKREVTIME,false,false,data.HEAP,bytesToSize(os.freemem()));
+        exportCSV_SEND(msg,ACKREVTIME,false,false,data.HEAP,bytesToSize(os.freemem()),console.log(os.cpus()),TO_SEND_BUFF.length);
 
         //check if all of the fragmented message was acked
         fragLen = msg.msg.FRAG_LEN;
@@ -674,7 +674,7 @@ function msgTimeout() {
         currentTime = Date.now();
         var timedoutMsg = msg;
 
-        exportCSV_SEND(timedoutMsg,Date.now(),true, false,null,bytesToSize(os.freemem()));
+        exportCSV_SEND(timedoutMsg,Date.now(),true, false,null,bytesToSize(os.freemem()),console.log(os.cpus()),TO_SEND_BUFF.length);
 
         timedoutMsg.timedout += 1;
 
@@ -844,12 +844,13 @@ function exportCSV_RECV(data, recvTime){
           'DATA_LEN': data.DATA.length,
           'timeRecv': recvTime,
           'HEAP': data.HEAP,
-          'Free_Mem': bytesToSize(os.freemem())
+          'Free_Mem': bytesToSize(os.freemem()),
+          'CPU_Load': console.log(os.cpus()),
       }
   ])
 }
 
-function exportCSV_SEND(data,currentTime,isTimedOut,isError,HEAP,FREE){
+function exportCSV_SEND(data,currentTime,isTimedOut,isError,HEAP,FREE,CPU,Buffer){
   if(isTimedOut){
       csvWriter_SEND.writeRecords([
           {
@@ -861,7 +862,10 @@ function exportCSV_SEND(data,currentTime,isTimedOut,isError,HEAP,FREE){
               'timeSend': data.timeSent,
               'timeAckRecv': currentTime,
               'HEAP':'-',
-              'Free_Mem':FREE
+              'Free_Mem':FREE,
+              'CPU_Load': CPU,
+              'Message_in_Buffer': Buffer
+
           }
       ])
   }
@@ -876,7 +880,9 @@ function exportCSV_SEND(data,currentTime,isTimedOut,isError,HEAP,FREE){
               'timeSend': data.timeSent,
               'timeAckRecv': "-",
               'HEAP':HEAP,
-              'Free_Mem':bytesToSize(os.freemem())
+              'Free_Mem':bytesToSize(os.freemem()),
+              'CPU_Load': console.log(os.cpus()),
+              'Message_in_Buffer': TO_SEND_BUFF.length
           }
       ])
   }
@@ -892,29 +898,14 @@ function exportCSV_SEND(data,currentTime,isTimedOut,isError,HEAP,FREE){
               'timeSend': data.timeSent,
               'timeAckRecv': currentTime,
               'HEAP':HEAP,
-              'Free_Mem':bytesToSize(os.freemem())
+              'Free_Mem':bytesToSize(os.freemem()),
+              'CPU_Load': console.log(os.cpus()),
+              'Message_in_Buffer': TO_SEND_BUFF.length
           }
       ])
   }
 }
 
-//http api for sending test messages
-app.get('/', function(req,res) {
-  res.send('welcome to test interface');
-})
-
-app.post('/chat', function(req, res) {
-  var data = req.body;
-  res.sendStatus(200);
-  sendData(data)
-})
-
-app.post('/longChat', function(req, res) {
-  var data = req.body;
-  res.sendStatus(200);
-  sendData(data)
-  
-})
 
 //function for logging data
 const createCSVWriter_SEND = require('csv-writer').createObjectCsvWriter;
@@ -930,7 +921,9 @@ header: [
   {id: 'timeAckRecv', title: 'timeAckRecv'},
   {id: 'timeSend', title: 'timeSend'},
   {id: 'HEAP', title:'HEAP'},
-  {id: 'Free_Mem',titile:'Free_Mem'}
+  {id: 'Free_Mem',title:'Free_Mem'},
+  {id: 'CPU_Load', title:'CPU_Load'},
+  {id: 'Message_in_Buffer', title:'Message_in_Buffer'}
 ]
 });
 
@@ -943,6 +936,8 @@ header: [
   {id: 'DATA_LEN', title: 'DATA_LEN'},
   {id: 'timeRecv', title: 'timeRecv'},
   {id: 'HEAP', title:'HEAP'},
-  {id: 'Free_Mem',titile:'Free_Mem'}
+  {id: 'Free_Mem',titile:'Free_Mem'},
+  {id: 'CPU_Load', title:'CPU_Load'}
+  {id: 'Message_in_Buffer', title: 'Message_in_Buffer'}
 ]
 });
