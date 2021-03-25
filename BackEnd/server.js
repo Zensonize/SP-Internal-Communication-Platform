@@ -326,26 +326,14 @@ const handler = {
   READY: function (data) {
     if (!data.SUCCESS) {
       recentSend = SENT_BUFF.pop();
-      console.error(
-        "ESP failed to send",
-        recentSend.msg.MSG_ID,
-        "because the node is offline"
-      );
+      console.error("ESP failed to send",recentSend.msg.MSG_ID,"because the node is offline");
 
-      exportCSV_SEND(
-        recentSend,
-        Date.now(),
-        false,
-        true,
-        data.HEAP,
-        bytesToSize(os.freemem()),
-        console.log(`${os.loadavg()[1].toFixed(2)} %`),
-        TO_SEND_BUFF.length
-      );
+      exportCSV_SEND(recentSend,Date.now(),false,true,data.HEAP,bytesToSize(os.freemem()),console.log(`${os.loadavg()[1].toFixed(2)} %`),TO_SEND_BUFF.length,false);
 
       ALL_NODE[recentSend.to].status = "OFFLINE";
       ALL_SERVER[recentSend.to].status = "OFFLINE";
       console.log("Server", ALL_SERVER[recentSend.to].name, "went OFFLINE");
+      exportCSV_SEND(null,Date.now(),false,false,null,bytesToSize(os.freemem()),console.log(`${os.loadavg()[1].toFixed(2)} %`),null,true);
     } else {
       console.log("ESP is ready to send next");
     }
@@ -365,16 +353,7 @@ const handler = {
         console.log("ACK", data.ACK_MSG_ID, "RTT", ACKREVTIME - msg.timeSent);
         SENT_BUFF.splice(i, 1);
 
-        exportCSV_SEND(
-          msg,
-          ACKREVTIME,
-          false,
-          false,
-          data.HEAP,
-          bytesToSize(os.freemem()),
-          console.log(`${os.loadavg()[1].toFixed(2)} %`),
-          TO_SEND_BUFF.length
-        );
+        exportCSV_SEND(msg,ACKREVTIME,false,false,data.HEAP,bytesToSize(os.freemem()),console.log(`${os.loadavg()[1].toFixed(2)} %`),TO_SEND_BUFF.length,false);
 
         //tag db that this message is sent
         // originalData = JSON.parse(msg.msg.DATA);
@@ -428,26 +407,10 @@ const handler = {
         data.ACK_FRAG_ID == msg.msg.FRAG_ID &&
         data.ACK_MSG_ID == msg.msg.MSG_ID
       ) {
-        console.log(
-          "ACK",
-          data.ACK_MSG_ID,
-          "FRAG",
-          data.ACK_FRAG_ID,
-          "RTT",
-          ACKREVTIME - msg.timeSent
-        );
+        console.log("ACK",data.ACK_MSG_ID,"FRAG",data.ACK_FRAG_ID,"RTT",ACKREVTIME - msg.timeSent);
         SENT_BUFF[i].ACKED == true;
 
-        exportCSV_SEND(
-          msg,
-          ACKREVTIME,
-          false,
-          false,
-          data.HEAP,
-          bytesToSize(os.freemem()),
-          console.log(`${os.loadavg()[1].toFixed(2)} %`),
-          TO_SEND_BUFF.length
-        );
+        exportCSV_SEND(msg,ACKREVTIME,false,false,data.HEAP,bytesToSize(os.freemem()),console.log(`${os.loadavg()[1].toFixed(2)} %`),TO_SEND_BUFF.length,false);
 
         //check if all of the fragmented message was acked
         fragLen = msg.msg.FRAG_LEN;
@@ -466,12 +429,7 @@ const handler = {
               SENT_BUFF.splice(j, 1);
             }
           }
-          console.log(
-            "ACKED ALL FRAG",
-            data.ACK_MSG_ID,
-            "LENGTH",
-            msg.msg.FRAG_LEN
-          );
+          console.log("ACKED ALL FRAG",data.ACK_MSG_ID,"LENGTH",msg.msg.FRAG_LEN);
         }
         // SENT_BUFF.splice(i, 1);
         break;
@@ -496,12 +454,7 @@ const handler = {
           if (key in ALL_SERVER) {
             // console.log("KEY", key, "data in ALL_SERVER", ALL_SERVER[key]);
             ALL_SERVER[key].status = "ONLINE";
-            console.log(
-              "notice: server",
-              key,
-              ALL_SERVER[key].name,
-              "back online"
-            );
+            console.log("notice: server",key,ALL_SERVER[key].name,"back online");
             if (TO_SEND_BUFF.length) {
               setSerialRoutine();
             }
@@ -515,12 +468,8 @@ const handler = {
         if (ALL_NODE[key].status === "ONLINE") {
           if (key in ALL_SERVER) {
             ALL_SERVER[key].status = "OFFLINE";
-            console.log(
-              "notice: server",
-              key,
-              ALL_SERVER[key].name,
-              "went offline"
-            );
+            console.log("notice: server",key,ALL_SERVER[key].name,"went offline");
+            exportCSV_SEND(null,Date.now(),false,false,null,bytesToSize(os.freemem()),console.log(`${os.loadavg()[1].toFixed(2)} %`),null,true);
           } else {
             console.log("notice: node", key, "went offline");
           }
@@ -634,7 +583,7 @@ let sendSerialInterval = null;
 
 function setSerialRoutine() {
   if (sendSerialInterval == null) {
-    sendSerialInterval = setTimeout(sendToSerial, Math.random() * 500 + 150);
+    sendSerialInterval = setTimeout(sendToSerial, Math.random() * 500 + 50);
   }
 }
 
@@ -745,7 +694,8 @@ function msgTimeout() {
           null,
           bytesToSize(os.freemem()),
           console.log(`${os.loadavg()[1].toFixed(2)} %`),
-          TO_SEND_BUFF.length
+          TO_SEND_BUFF.length,
+          false
         );
 
         timedoutMsg.timedout += 1;
@@ -935,21 +885,13 @@ function exportCSV_RECV(data, recvTime) {
   ]);
 }
 
-function exportCSV_SEND(
-  data,
-  currentTime,
-  isTimedOut,
-  isError,
-  HEAP,
-  FREE,
-  CPU,
-  Buffer
-) {
+function exportCSV_SEND(data, currentTime, isTimedOut, isError, HEAP, FREE, CPU, Buffer, isOffline) {
   if (isTimedOut) {
     csvWriter_SEND.writeRecords([
       {
         MSG_ID: data.msg.MSG_ID,
         FRAG_ID: data.msg.FRAG_ID,
+        MSG_TYPE: data.msg.FLAG,
         DATA_LEN: data.msg.DATA.length,
         ERROR: "TIMEDOUT",
         retires: data.retires,
@@ -966,6 +908,7 @@ function exportCSV_SEND(
       {
         MSG_ID: data.msg.MSG_ID,
         FRAG_ID: data.msg.FRAG_ID,
+        MSG_TYPE: data.msg.FLAG,
         DATA_LEN: data.msg.DATA.length,
         ERROR: "ESP32",
         retires: data.retires,
@@ -975,6 +918,23 @@ function exportCSV_SEND(
         Free_Mem: bytesToSize(os.freemem()),
         CPU_Load: cpu_usage(os.loadavg()[1]),
         Message_in_Buffer: TO_SEND_BUFF.length,
+      },
+    ]);
+  } else if (isOffline){
+    csvWriter_SEND.writeRecords([
+      {
+        MSG_ID: "-",
+        FRAG_ID: "-",
+        MSG_TYPE: "-",
+        DATA_LEN: "-",
+        ERROR: "SERVER OFFLINE",
+        retires: "-",
+        timeSend: "-",
+        timeAckRecv: currentTime,
+        HEAP: "-",
+        Free_Mem: FREE,
+        CPU_Load: CPU,
+        Message_in_Buffer: Buffer,
       },
     ]);
   } else {
