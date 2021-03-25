@@ -937,7 +937,7 @@ header: [
   {id: 'timeRecv', title: 'timeRecv'},
   {id: 'HEAP', title:'HEAP'},
   {id: 'Free_Mem',titile:'Free_Mem'},
-  {id: 'CPU_Load', title:'CPU_Load'}
+  {id: 'CPU_Load', title:'CPU_Load'},
   {id: 'Message_in_Buffer', title: 'Message_in_Buffer'}
 ]
 });
