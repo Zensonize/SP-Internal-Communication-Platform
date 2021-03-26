@@ -4,9 +4,10 @@ var schema = require("./db/schema");
 const os = require("os");
 const bytesToSize = (bytes) => {
   const sizes = ["Bytes", "KiB", "MiB", "GiB"];
-  if (bytes == 0) return "0 Byte";
-  const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
-  return Math.round(bytes / Math.pow(1024, i), 2) + " " + sizes[i];
+  // if (bytes == 0) return "0 Byte";
+  // const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
+  // return Math.round(bytes / Math.pow(1024, i), 2) + " " + sizes[i];
+  return bytes/1000
 };
 
 const cpu_usage = (data) => {
@@ -873,9 +874,11 @@ function exportCSV_RECV(data, recvTime) {
   csvWriter_RECV.writeRecords([
     {
       MSG_ID: data.MSG_ID,
+      IS_FRAG: data.FRAG,
       FRAG_ID: data.FRAG_ID,
+      FRAG_LEN: data.FRAG_LEN,
       DATA_LEN: data.DATA.length,
-      timeRecv: recvTime,
+      T_RECV: recvTime,
       HEAP: data.HEAP,
       Free_Mem: bytesToSize(os.freemem()),
       CPU_Load: cpu_usage(os.loadavg()[1]),
@@ -890,13 +893,14 @@ function exportCSV_SEND(data, currentTime, isTimedOut, isError, HEAP, FREE, CPU,
     csvWriter_SEND.writeRecords([
       {
         MSG_ID: data.msg.MSG_ID,
+        IS_FRAG: data.msg.FRAG,
         FRAG_ID: data.msg.FRAG_ID,
         MSG_TYPE: data.msg.FLAG,
         DATA_LEN: data.msg.DATA.length,
         ERROR: "TIMEDOUT",
-        retires: data.retires,
-        timeSend: data.timeSent,
-        timeAckRecv: currentTime,
+        timedout: data.timedout,
+        T_SEND: data.timeSent,
+        T_ACK_RECV: currentTime,
         HEAP: "-",
         Free_Mem: FREE,
         CPU_Load: CPU,
@@ -907,13 +911,15 @@ function exportCSV_SEND(data, currentTime, isTimedOut, isError, HEAP, FREE, CPU,
     csvWriter_SEND.writeRecords([
       {
         MSG_ID: data.msg.MSG_ID,
+        IS_FRAG: data.msg.FRAG,
         FRAG_ID: data.msg.FRAG_ID,
+        FRAG_LEN: data.msg.FRAG_LEN,
         MSG_TYPE: data.msg.FLAG,
         DATA_LEN: data.msg.DATA.length,
         ERROR: "ESP32",
-        retires: data.retires,
-        timeSend: data.timeSent,
-        timeAckRecv: "-",
+        TIMEDOUT: data.timedout,
+        T_SEND: data.timeSent,
+        T_ACK_RECV: "-",
         HEAP: HEAP,
         Free_Mem: bytesToSize(os.freemem()),
         CPU_Load: cpu_usage(os.loadavg()[1]),
@@ -924,13 +930,15 @@ function exportCSV_SEND(data, currentTime, isTimedOut, isError, HEAP, FREE, CPU,
     csvWriter_SEND.writeRecords([
       {
         MSG_ID: "-",
+        IS_FRAG: "-",
         FRAG_ID: "-",
+        FRAG_LEN: "-",
         MSG_TYPE: "-",
         DATA_LEN: "-",
         ERROR: "SERVER OFFLINE",
-        retires: "-",
-        timeSend: "-",
-        timeAckRecv: currentTime,
+        TIMEDOUT: data.timedout,
+        T_SEND: "-",
+        T_ACK_RECV: currentTime,
         HEAP: "-",
         Free_Mem: FREE,
         CPU_Load: CPU,
@@ -941,13 +949,15 @@ function exportCSV_SEND(data, currentTime, isTimedOut, isError, HEAP, FREE, CPU,
     csvWriter_SEND.writeRecords([
       {
         MSG_ID: data.msg.MSG_ID,
+        IS_FRAG: data.msg.FRAG,
         FRAG_ID: data.msg.FRAG_ID,
+        FRAG_LEN: data.msg.FRAG_LEN,
         MSG_TYPE: data.msg.FLAG,
         DATA_LEN: data.msg.DATA.length,
         ERROR: "NONE",
-        retires: data.retires,
-        timeSend: data.timeSent,
-        timeAckRecv: currentTime,
+        TIMEDOUT: data.timedout,
+        T_SEND: data.timeSent,
+        T_ACK_RECV: currentTime,
         HEAP: HEAP,
         Free_Mem: bytesToSize(os.freemem()),
         CPU_Load: cpu_usage(os.loadavg()[1]),
@@ -960,34 +970,38 @@ function exportCSV_SEND(data, currentTime, isTimedOut, isError, HEAP, FREE, CPU,
 //function for logging data
 const createCSVWriter_SEND = require("csv-writer").createObjectCsvWriter;
 const csvWriter_SEND = createCSVWriter_SEND({
-  path: "/home/ubuntu/log/10-MM_SEND_SERVERB.csv",
+  path: "/home/ubuntu/log/SEND.csv",
   header: [
     { id: "MSG_ID", title: "MSG_ID" },
+    { id: "IS_FRAG", title: "IS_FRAG" },
     { id: "FRAG_ID", title: "FRAG_ID" },
+    { id: "FRAG_LEN", title: "FRAG_LEN" },
     { id: "MSG_TYPE", title: "MSG_TYPE" },
     { id: "DATA_LEN", title: "DATA_LEN" },
     { id: "ERROR", title: "ERROR" },
-    { id: "retires", title: "retires" },
-    { id: "timeAckRecv", title: "timeAckRecv" },
-    { id: "timeSend", title: "timeSend" },
+    { id: "TIMEDOUT", title: "TIMEDOUT" },
+    { id: "T_ACK_RECV", title: "T_ACK_RECV" },
+    { id: "T_SEND", title: "T_SEND" },
     { id: "HEAP", title: "HEAP" },
-    { id: "Free_Mem", title: "Free_Mem" },
-    { id: "CPU_Load", title: "CPU_Load" },
-    { id: "Message_in_Buffer", title: "Message_in_Buffer" },
+    { id: "Free_Mem", title: "MEM_FREE" },
+    { id: "CPU_Load", title: "CPU_LOAD" },
+    { id: "Message_in_Buffer", title: "MSG_IN_BUFF" },
   ],
 });
 
 const createCSVWriter_RECV = require("csv-writer").createObjectCsvWriter;
 const csvWriter_RECV = createCSVWriter_RECV({
-  path: "/home/ubuntu/log/10-MM_RECV_SERVERB.csv",
+  path: "/home/ubuntu/log/RECV.csv",
   header: [
     { id: "MSG_ID", title: "MSG_ID" },
+    { id: "IS_FRAG", title: "IS_FRAG" },
     { id: "FRAG_ID", title: "FRAG_ID" },
+    { id: "FRAG_LEN", title: "FRAG_LEN" },
     { id: "DATA_LEN", title: "DATA_LEN" },
-    { id: "timeRecv", title: "timeRecv" },
+    { id: "T_RECV", title: "T_RECV" },
     { id: "HEAP", title: "HEAP" },
-    { id: "Free_Mem", title: "Free_Mem" },
-    { id: "CPU_Load", title: "CPU_Load" },
-    { id: "Message_in_Buffer", title: "Message_in_Buffer" },
+    { id: "Free_Mem", title: "MEM_FREE" },
+    { id: "CPU_Load", title: "CPU_LOAD" },
+    { id: "Message_in_Buffer", title: "MSG_IN_BUFF" },
   ],
 });
