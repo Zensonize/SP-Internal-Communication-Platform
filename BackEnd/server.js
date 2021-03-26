@@ -327,14 +327,14 @@ const handler = {
   READY: function (data) {
     if (!data.SUCCESS) {
       recentSend = SENT_BUFF.pop();
-      console.error("ESP failed to send",recentSend.msg.MSG_ID,"because the node is offline");
+      console.error("ESP failed to send",recentSend.msg.MSG_ID,"because the server is offline");
 
-      exportCSV_SEND(recentSend,Date.now(),false,true,data.HEAP,bytesToSize(os.freemem()),console.log(`${os.loadavg()[1].toFixed(2)} %`),TO_SEND_BUFF.length,false);
+      exportCSV_SEND(recentSend,Date.now(),false,true,data.HEAP,bytesToSize(os.freemem()),console.log(`${os.loadavg()[1].toFixed(2)} %`),TO_SEND_BUFF.length);
 
       ALL_NODE[recentSend.to].status = "OFFLINE";
       ALL_SERVER[recentSend.to].status = "OFFLINE";
       console.log("Server", ALL_SERVER[recentSend.to].name, "went OFFLINE");
-      exportCSV_SEND(null,Date.now(),false,false,null,bytesToSize(os.freemem()),console.log(`${os.loadavg()[1].toFixed(2)} %`),null,true);
+      exportCSV_NODE(Date.now(),recentSend.to,"OFFINE",true,ALL_SERVER[recentSend.to].name,"MSG")
     } else {
       console.log("ESP is ready to send next");
     }
@@ -354,7 +354,7 @@ const handler = {
         console.log("ACK", data.ACK_MSG_ID, "RTT", ACKREVTIME - msg.timeSent);
         SENT_BUFF.splice(i, 1);
 
-        exportCSV_SEND(msg,ACKREVTIME,false,false,data.HEAP,bytesToSize(os.freemem()),console.log(`${os.loadavg()[1].toFixed(2)} %`),TO_SEND_BUFF.length,false);
+        exportCSV_SEND(msg,ACKREVTIME,false,false,data.HEAP,bytesToSize(os.freemem()),console.log(`${os.loadavg()[1].toFixed(2)} %`),TO_SEND_BUFF.length);
 
         //tag db that this message is sent
         // originalData = JSON.parse(msg.msg.DATA);
@@ -411,7 +411,7 @@ const handler = {
         console.log("ACK",data.ACK_MSG_ID,"FRAG",data.ACK_FRAG_ID,"RTT",ACKREVTIME - msg.timeSent);
         SENT_BUFF[i].ACKED == true;
 
-        exportCSV_SEND(msg,ACKREVTIME,false,false,data.HEAP,bytesToSize(os.freemem()),console.log(`${os.loadavg()[1].toFixed(2)} %`),TO_SEND_BUFF.length,false);
+        exportCSV_SEND(msg,ACKREVTIME,false,false,data.HEAP,bytesToSize(os.freemem()),console.log(`${os.loadavg()[1].toFixed(2)} %`),TO_SEND_BUFF.length);
 
         //check if all of the fragmented message was acked
         fragLen = msg.msg.FRAG_LEN;
@@ -456,11 +456,13 @@ const handler = {
             // console.log("KEY", key, "data in ALL_SERVER", ALL_SERVER[key]);
             ALL_SERVER[key].status = "ONLINE";
             console.log("notice: server",key,ALL_SERVER[key].name,"back online");
+            exportCSV_NODE(Date.now(),key,"ONLINE",true,ALL_SERVER[key].name,"CHANGED_CONNECTION")
             if (TO_SEND_BUFF.length) {
               setSerialRoutine();
             }
           } else {
             console.log("notice: node", key, "back online");
+            exportCSV_NODE(Date.now(),key,"ONLINE",false,"-","CHANGED_CONNECTION")
           }
         }
         ALL_NODE[key].status = "ONLINE";
@@ -470,9 +472,10 @@ const handler = {
           if (key in ALL_SERVER) {
             ALL_SERVER[key].status = "OFFLINE";
             console.log("notice: server",key,ALL_SERVER[key].name,"went offline");
-            exportCSV_SEND(null,Date.now(),false,false,null,bytesToSize(os.freemem()),console.log(`${os.loadavg()[1].toFixed(2)} %`),null,true);
+            exportCSV_NODE(Date.now(),key,"OFFLINE",true,ALL_SERVER[key].name,"CHANGED_CONNECTION")
           } else {
             console.log("notice: node", key, "went offline");
+            exportCSV_NODE(Date.now(),key,"OFFLINE",false,"-","CHANGED_CONNECTION")
           }
         }
         ALL_NODE[key].status = "OFFLINE";
@@ -687,36 +690,14 @@ function msgTimeout() {
         currentTime = Date.now();
         var timedoutMsg = msg;
 
-        exportCSV_SEND(
-          timedoutMsg,
-          Date.now(),
-          true,
-          false,
-          null,
-          bytesToSize(os.freemem()),
-          console.log(`${os.loadavg()[1].toFixed(2)} %`),
-          TO_SEND_BUFF.length,
-          false
-        );
+        exportCSV_SEND(timedoutMsg, Date.now(), true, false, null, bytesToSize(os.freemem()), console.log(`${os.loadavg()[1].toFixed(2)} %`), TO_SEND_BUFF.length );
 
         timedoutMsg.timedout += 1;
 
         if (timedoutMsg.timedout >= 5) {
-          console.log(
-            "TIMEDOUT:",
-            timedoutMsg.msg.MSG_ID,
-            "discarded this message at",
-            (currentTime - msg.timeSent) / 1000,
-            "sec"
-          );
+          console.log("TIMEDOUT:", timedoutMsg.msg.MSG_ID, "discarded this message at", (currentTime - msg.timeSent) / 1000, "sec" );
         } else {
-          console.log(
-            "TIMEDOUT:",
-            timedoutMsg.msg.MSG_ID,
-            "will retry sending",
-            (currentTime - msg.timeSent) / 1000,
-            "sec"
-          );
+          console.log("TIMEDOUT:",timedoutMsg.msg.MSG_ID,"will retry sending",(currentTime - msg.timeSent) / 1000,"sec");
           TO_SEND_BUFF.push(timedoutMsg);
           SENT_BUFF.splice(i, 1);
           setSerialRoutine();
@@ -888,7 +869,7 @@ function exportCSV_RECV(data, recvTime) {
   ]);
 }
 
-function exportCSV_SEND(data, currentTime, isTimedOut, isError, HEAP, FREE, CPU, Buffer, isOffline) {
+function exportCSV_SEND(data, currentTime, isTimedOut, isError, HEAP, FREE, CPU, Buffer) {
   if (isTimedOut) {
     csvWriter_SEND.writeRecords([
       {
@@ -900,7 +881,9 @@ function exportCSV_SEND(data, currentTime, isTimedOut, isError, HEAP, FREE, CPU,
         ERROR: "TIMEDOUT",
         timedout: data.timedout,
         T_SEND: data.timeSent,
-        T_ACK_RECV: currentTime,
+        T_TIMEDOUT: currentTime,
+        T_ERROR: "-",
+        T_ACK_RECV: "-",
         HEAP: "-",
         Free_Mem: FREE,
         CPU_Load: CPU,
@@ -919,30 +902,13 @@ function exportCSV_SEND(data, currentTime, isTimedOut, isError, HEAP, FREE, CPU,
         ERROR: "ESP32",
         TIMEDOUT: data.timedout,
         T_SEND: data.timeSent,
+        T_TIMEDOUT: "-",
+        T_ERROR: currentTime,
         T_ACK_RECV: "-",
         HEAP: HEAP,
         Free_Mem: bytesToSize(os.freemem()),
         CPU_Load: cpu_usage(os.loadavg()[1]),
         Message_in_Buffer: TO_SEND_BUFF.length,
-      },
-    ]);
-  } else if (isOffline){
-    csvWriter_SEND.writeRecords([
-      {
-        MSG_ID: "-",
-        IS_FRAG: "-",
-        FRAG_ID: "-",
-        FRAG_LEN: "-",
-        MSG_TYPE: "-",
-        DATA_LEN: "-",
-        ERROR: "SERVER OFFLINE",
-        TIMEDOUT: data.timedout,
-        T_SEND: "-",
-        T_ACK_RECV: currentTime,
-        HEAP: "-",
-        Free_Mem: FREE,
-        CPU_Load: CPU,
-        Message_in_Buffer: Buffer,
       },
     ]);
   } else {
@@ -957,6 +923,8 @@ function exportCSV_SEND(data, currentTime, isTimedOut, isError, HEAP, FREE, CPU,
         ERROR: "NONE",
         TIMEDOUT: data.timedout,
         T_SEND: data.timeSent,
+        T_TIMEDOUT: "-",
+        T_ERROR: "-",
         T_ACK_RECV: currentTime,
         HEAP: HEAP,
         Free_Mem: bytesToSize(os.freemem()),
@@ -965,6 +933,19 @@ function exportCSV_SEND(data, currentTime, isTimedOut, isError, HEAP, FREE, CPU,
       },
     ]);
   }
+}
+
+function exportCSV_NODE(currentTime, nodeID, event, isServer, serverName, source) {
+  csvWriter_NODE.writeRecords([
+    {
+      TIME: currentTime,
+      EVENT: event,
+      NODE_ID: nodeID,
+      IS_SERVER: isServer,
+      SERVER_NAME: serverName,
+      SOURCE, source
+    },
+  ]);
 }
 
 //function for logging data
@@ -980,8 +961,10 @@ const csvWriter_SEND = createCSVWriter_SEND({
     { id: "DATA_LEN", title: "DATA_LEN" },
     { id: "ERROR", title: "ERROR" },
     { id: "TIMEDOUT", title: "TIMEDOUT" },
-    { id: "T_ACK_RECV", title: "T_ACK_RECV" },
     { id: "T_SEND", title: "T_SEND" },
+    { id: "T_TIMEDOUT", title: "T_TIMEDOUT" },
+    { id: "T_ERROR", title: "T_ERROR"} ,
+    { id: "T_ACK_RECV", title: "T_ACK_RECV" },
     { id: "HEAP", title: "HEAP" },
     { id: "Free_Mem", title: "MEM_FREE" },
     { id: "CPU_Load", title: "CPU_LOAD" },
@@ -1003,5 +986,18 @@ const csvWriter_RECV = createCSVWriter_RECV({
     { id: "Free_Mem", title: "MEM_FREE" },
     { id: "CPU_Load", title: "CPU_LOAD" },
     { id: "Message_in_Buffer", title: "MSG_IN_BUFF" },
+  ],
+});
+
+const createCSVWriter_NODE = require("csv-writer").createObjectCsvWriter;
+const csvWriter_NODE = createCSVWriter_NODE({
+  path: "/home/ubuntu/log/NODE.csv",
+  header: [
+    { id: "TIME", title: "TIME" },
+    { id: "EVENT", title: "EVENT" },
+    { id: "NODE_ID", title: "NODE_ID" },
+    { id: "IS_SERVER", title: "IS_SERVER" },
+    { id: "SERVER_NAME", title: "SERVER_NAME" },
+    { id: "SOURCE", title: "SOURCE" }
   ],
 });
