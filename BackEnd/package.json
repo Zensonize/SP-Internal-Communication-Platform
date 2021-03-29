@@ -13,7 +13,8 @@
     "moment": "^2.29.1",
     "mongoose": "^5.10.11",
     "serialport": "^9.0.6",
-    "socket.io": "*"
+    "socket.io": "*",
+    "socket.io-client": "^2.3.0"
   },
   "devDependencies": {
     "nodemon": "*"

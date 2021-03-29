@@ -9,7 +9,7 @@ var room = 'test'
 // console.log(obj)
 
 
-const socket = io("http://10.5.50.235:3000/", {
+const socket = io("http://192.168.5.1:3000/", {
   reconnectionDelayMax: 10000,
   
 });
@@ -36,13 +36,18 @@ socket.on("connect", () => {
 
 const timer = ms => new Promise(res => setTimeout(res, ms))
 
+function random(min,max){
+  return Math.floor(Math.random() * (max-min) + min);
+}
+
 async function load () { // We need to wrap the loop into an async function for this to work
-  for (var i = 0; i < 5000; i++) {
+  for (var i = 0; i < 1000; i++) {
     console.log(i);
-    socket.emit("msg",msg[i],room,u_name[i])
-    await timer(500); // then the created Promise can be awaited
+    socket.emit("msg",msg[random(0,9999)],room,u_name[random(0,9999)])
+    await timer(600); // then the created Promise can be awaited
+    // console.log(random(0,9999))
     
   }
 }
 
-load();
+load()
