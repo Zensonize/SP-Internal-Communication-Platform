@@ -517,9 +517,10 @@ const handler = {
       // console.log("send msg to: ", present_room_id);
       var extract_json_obj_list = JSON.parse(data.DATA);
       for (i in extract_json_obj_list) {
-        extract_json_obj = extract_json_obj_list[i];
+        extract_json_obj = data.DATA
         // console.log(extract_json_obj)
         if (extract_json_obj.FLAG === "msg") {
+          
           let message = mongoose.model(present_room_id, ChatSchema);
           let u_name_in_chat = extract_json_obj.username;
           let msg_in_chat = extract_json_obj.msg;
@@ -621,6 +622,7 @@ function nextMSG_ID() {
 
 function pickNextMSG() {
   let pickedMsg = null;
+  let shiftCount = 0;
 
   while (true) {
     shiftCount += 1;
@@ -655,11 +657,11 @@ function pickNextMSG() {
   if (pickedMsg == null){
     return pickedMsg
   }
-  else if (selectedMsg.msg.FLAG == "ECHO"){
+  else if (pickedMsg.msg.FLAG == "ECHO"){
     return pickedMsg
   }
   else {
-    totalMsgLen = pickedMsg.msg.data[0].length;
+    totalMsgLen = pickedMsg.msg.DATA[0].length;
     while (totalMsgLen < 1100){
       nextCandidate = null
       for (i in TO_SEND_BUFF) {
@@ -671,14 +673,14 @@ function pickNextMSG() {
       if (nextCandidate == null) {
         console.log('Aggregation stop there is no suitable candidate')
         break;
-      } else if (totalMsgLen + TO_SEND_BUFF[nextCandidate].msg.data[0].length >= 1100){
+      } else if (totalMsgLen + TO_SEND_BUFF[nextCandidate].msg.DATA[0].length >= 1100){
         console.log('Aggregation stop result will exceed MTU')
         break;
       } else {
-        pickedMsg.id.push(TO_SEND_BUFF[nextCandidate].id);
+        pickedMsg.id.push(TO_SEND_BUFF[nextCandidate].id[0]);
         pickedMsg.msg.AGG += 1;
-        pickedMsg.msg.DATA.push(TO_SEND_BUFF[nextCandidate].msg.DATA);
-        pickedMsg.FFLAG.push(O_SEND_BUFF[nextCandidate].FFLAG);
+        pickedMsg.msg.DATA.push(TO_SEND_BUFF[nextCandidate].msg.DATA[0]);
+        pickedMsg.FFLAG.push(TO_SEND_BUFF[nextCandidate].FFLAG[0]);
         totalMsgLen += TO_SEND_BUFF[nextCandidate].msg.DATA.length;
         console.log('aggregated MSG',TO_SEND_BUFF[nextCandidate].msg.MSG_ID, 'to MSG',pickedMsg.msg.MSG_ID, 'new length', totalMsgLen)
         TO_SEND_BUFF.splice(0, 1);
@@ -904,7 +906,7 @@ function exportCSV_RECV(data, recvTime) {
       IS_FRAG: data.FRAG,
       FRAG_ID: data.FRAG_ID,
       FRAG_LEN: data.FRAG_LEN,
-      DATA_LEN: calcmsgLen(msg),
+      DATA_LEN: calcmsgLen(data),
       T_RECV: recvTime,
       HEAP: data.HEAP,
       Free_Mem: bytesToSize(os.freemem()),
@@ -992,7 +994,7 @@ function exportCSV_NODE(currentTime, nodeID, event, isServer, serverName, source
       NODE_ID: nodeID,
       IS_SERVER: isServer,
       SERVER_NAME: serverName,
-      SOURCE, source
+      SOURCE: source
     },
   ]);
 }
