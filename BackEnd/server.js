@@ -294,7 +294,6 @@ initNodeList();
 let TO_SEND_BUFF = [];
 let SENT_BUFF = [];
 let RECV_BUFF = {};
-let isFree = true;
 let timeoutRoutine = null;
 
 const handler = {
@@ -358,51 +357,53 @@ const handler = {
 
         //tag db that this message is sent
         // originalData = JSON.parse(msg.msg.DATA);
-        if (msg.FFLAG === "msg") {
-          //model for querying db
-          var chatModel = mongoose.model("ChatSchemaList", ChatSchema);
-          chatModel.updateOne(
-            { _id: msg.id },
-            {
-              $push: {
-                synced: msg.to,
+        for (i in msg.id){
+          if (msg.FFLAG[i] === "msg") {
+            //model for querying db
+            var chatModel = mongoose.model("ChatSchemaList", ChatSchema);
+            chatModel.updateOne(
+              { _id: msg.id[i] },
+              {
+                $push: {
+                  synced: msg.to,
+                },
               },
-            },
-            (err, result) => {
-              if (err) throw err;
-              console.log("updated chat db after synced", result);
-            }
-          );
-        } else if (originalData.FLAG === "room") {
-          var roomModel = mongoose.model("RoomSchemaList", RoomSchema);
-          roomModel.updateOne(
-            { _id: msg.id },
-            {
-              $push: {
-                synced: msg.to,
+              (err, result) => {
+                if (err) throw err;
+                console.log("updated chat db after synced", result);
+              }
+            );
+          } else if (msg.FFLAG[i] === "room") {
+            var roomModel = mongoose.model("RoomSchemaList", RoomSchema);
+            roomModel.updateOne(
+              { _id: msg.id[i] },
+              {
+                $push: {
+                  synced: msg.to,
+                },
               },
-            },
-            (err, result) => {
-              if (err) throw err;
-              console.log("updated room db after synced", result);
-            }
-          );
-        } else if (originalData.FLAG === "user") {
-          var userModel = mongoose.model("UserSchemaList", userRegister);
-          userModel.updateOne(
-            { _id: msg.id },
-            {
-              $push: {
-                synced: msg.to,
+              (err, result) => {
+                if (err) throw err;
+                console.log("updated room db after synced", result);
+              }
+            );
+          } else if (msg.FFLAG[i] === "user") {
+            var userModel = mongoose.model("UserSchemaList", userRegister);
+            userModel.updateOne(
+              { _id: msg.id[i] },
+              {
+                $push: {
+                  synced: msg.to,
+                },
               },
-            },
-            (err, result) => {
-              if (err) throw err;
-              console.log("updated user db after synced", result);
-            }
-          );
+              (err, result) => {
+                if (err) throw err;
+                console.log("updated user db after synced", result);
+              }
+            );
+          }
         }
-
+      
         break;
       } else if (
         data.ACK_FRAG_ID == msg.msg.FRAG_ID &&
@@ -514,42 +515,45 @@ const handler = {
       console.log("RECEIVED ", data.MSG_ID, "ESP HEAP: ", data.HEAP);
       // console.log("msg is: ", data.DATA);
       // console.log("send msg to: ", present_room_id);
-      var extract_json_obj = JSON.parse(data.DATA);
-      // console.log(extract_json_obj)
-      if (extract_json_obj.FLAG === "msg") {
-        let message = mongoose.model(present_room_id, ChatSchema);
-        let u_name_in_chat = extract_json_obj.username;
-        let msg_in_chat = extract_json_obj.msg;
-        let date_in_chat = extract_json_obj.date;
-        let room_in_chat = extract_json_obj.room;
-        if (room_in_chat !== present_room_id) {
-          console.log("mismatch room");
-          console.log(`user is: ${u_name_in_chat} msg is: ${msg_in_chat}
-          date is: ${date_in_chat} room is: ${room_in_chat} `);
-          let message = mongoose.model(room_in_chat, ChatSchema);
-          let save_msg = new message({
-            username: u_name_in_chat,
-            msg: msg_in_chat,
-            date: date_in_chat,
-          });
-          save_msg.save((err, result) => {
-            if (err) throw err;
-            // console.log(result);
-            msg_room_2.push(result);
-            io.to(room_in_chat).emit("msg_room", result);
-          });
-        } else {
-          let save_msg = new message({
-            username: u_name_in_chat,
-            msg: msg_in_chat,
-            date: date_in_chat,
-          });
-          save_msg.save((err, result) => {
-            if (err) throw err;
-            // console.log(result);
-            msg_room_2.push(result);
-            io.to(present_room_id).emit("msg_room", result);
-          });
+      var extract_json_obj_list = JSON.parse(data.DATA);
+      for (i in extract_json_obj_list) {
+        extract_json_obj = extract_json_obj_list[i];
+        // console.log(extract_json_obj)
+        if (extract_json_obj.FLAG === "msg") {
+          let message = mongoose.model(present_room_id, ChatSchema);
+          let u_name_in_chat = extract_json_obj.username;
+          let msg_in_chat = extract_json_obj.msg;
+          let date_in_chat = extract_json_obj.date;
+          let room_in_chat = extract_json_obj.room;
+          if (room_in_chat !== present_room_id) {
+            console.log("mismatch room");
+            console.log(`user is: ${u_name_in_chat} msg is: ${msg_in_chat}
+            date is: ${date_in_chat} room is: ${room_in_chat} `);
+            let message = mongoose.model(room_in_chat, ChatSchema);
+            let save_msg = new message({
+              username: u_name_in_chat,
+              msg: msg_in_chat,
+              date: date_in_chat,
+            });
+            save_msg.save((err, result) => {
+              if (err) throw err;
+              // console.log(result);
+              msg_room_2.push(result);
+              io.to(room_in_chat).emit("msg_room", result);
+            });
+          } else {
+            let save_msg = new message({
+              username: u_name_in_chat,
+              msg: msg_in_chat,
+              date: date_in_chat,
+            });
+            save_msg.save((err, result) => {
+              if (err) throw err;
+              // console.log(result);
+              msg_room_2.push(result);
+              io.to(present_room_id).emit("msg_room", result);
+            });
+          }
         }
       }
     } else {
@@ -615,7 +619,7 @@ function nextMSG_ID() {
   }
 }
 
-function pickNextMSG(aggDest) {
+function pickNextMSG() {
   let pickedMsg = null;
 
   while (true) {
@@ -648,24 +652,49 @@ function pickNextMSG(aggDest) {
     }
   }
 
+  if (pickedMsg == null){
+    return pickedMsg
+  }
+  else if (selectedMsg.msg.FLAG == "ECHO"){
+    return pickedMsg
+  }
+  else {
+    totalMsgLen = pickedMsg.msg.data[0].length;
+    while (totalMsgLen < 1100){
+      nextCandidate = null
+      for (i in TO_SEND_BUFF) {
+        if (TO_SEND_BUFF[i].msg.FLAG != "ECHO" && TO_SEND_BUFF[i].to == pickedMsg.to && !TO_SEND_BUFF[i].msg.FRAG){
+          nextCandidate = i
+          console.log('trying to aggregate MSG',TO_SEND_BUFF[nextCandidate].msg.MSG_ID, 'to MSG',pickedMsg.msg.MSG_ID, 'original length',totalMsgLen)
+        }
+      }
+      if (nextCandidate == null) {
+        console.log('Aggregation stop there is no suitable candidate')
+        break;
+      } else if (totalMsgLen + TO_SEND_BUFF[nextCandidate].msg.data[0].length >= 1100){
+        console.log('Aggregation stop result will exceed MTU')
+        break;
+      } else {
+        pickedMsg.id.push(TO_SEND_BUFF[nextCandidate].id);
+        pickedMsg.msg.AGG += 1;
+        pickedMsg.msg.DATA.push(TO_SEND_BUFF[nextCandidate].msg.DATA);
+        pickedMsg.FFLAG.push(O_SEND_BUFF[nextCandidate].FFLAG);
+        totalMsgLen += TO_SEND_BUFF[nextCandidate].msg.DATA.length;
+        console.log('aggregated MSG',TO_SEND_BUFF[nextCandidate].msg.MSG_ID, 'to MSG',pickedMsg.msg.MSG_ID, 'new length', totalMsgLen)
+        TO_SEND_BUFF.splice(0, 1);
+      }
+    }
+  }
+  console.log('aggregated result', pickedMsg)
   return pickedMsg
 }
 
 function sendToSerial() {
   let msgToSend = null;
   if (TO_SEND_BUFF.length) {
-    let shiftCount = 0;
-    msgToSend = pickNextMSG(null);
+    msgToSend = pickNextMSG();
     // msgToSend = TO_SEND_BUFF.shift();
     if (msgToSend != null) {
-      while (true) {
-        if (msgToSend.msg.FLAG === 'ECHO'){
-          break
-        }
-        else {
-          //aggregate the message
-        }
-      }
       console.log("\t sending",msgToSend.msg.FLAG,"ID:",msgToSend.msg.MSG_ID);
       // console.log(msgToSend);
       PORT.write(JSON.stringify(msgToSend.msg));
@@ -728,7 +757,6 @@ function sendFragment(dataStr, dest, _id, FLAG) {
       MSG_ID: nextMSG_ID(),
       FLAG: "DATA",
       FRAG: true,
-      AGG: false,
       FRAG_ID: 0,
       FRAG_LEN: dataFrag.length,
       TOA: convertDstAddr(dest)[0],
@@ -749,14 +777,14 @@ function sendSingle(dataStr, dest, _id, FLAG) {
   msg = {
     timedout: 0,
     to: dest,
-    id: _id,
-    FFLAG: FLAG,
+    id: [_id],
+    FFLAG: [FLAG],
     msg: {
       MSG_ID: nextMSG_ID(),
       FLAG: "DATA",
       FRAG: false,
-      AGG: false,
-      DATA: dataStr,
+      AGG: 1,
+      DATA: [dataStr],
       TOA: convertDstAddr(dest)[0],
       TOB: convertDstAddr(dest)[1],
     },
@@ -861,6 +889,14 @@ function initNodeList() {
 //  console.log('free memory : ', bytesToSize(os.freemem()));
 //  console.log('total memory : ', bytesToSize(os.totalmem()));
 
+function calcmsgLen(msg){
+  ml = 0
+  for (i in msg.msg.data){
+    ml += msg.msg.DATA[i].length
+  }
+  return ml
+}
+
 function exportCSV_RECV(data, recvTime) {
   csvWriter_RECV.writeRecords([
     {
@@ -868,13 +904,12 @@ function exportCSV_RECV(data, recvTime) {
       IS_FRAG: data.FRAG,
       FRAG_ID: data.FRAG_ID,
       FRAG_LEN: data.FRAG_LEN,
-      DATA_LEN: data.DATA.length,
+      DATA_LEN: calcmsgLen(msg),
       T_RECV: recvTime,
       HEAP: data.HEAP,
       Free_Mem: bytesToSize(os.freemem()),
       CPU_Load: cpu_usage(os.loadavg()[1]),
-	  Message_in_Buffer: TO_SEND_BUFF.length,
-
+	    Message_in_Buffer: TO_SEND_BUFF.length,
     },
   ]);
 }
@@ -886,8 +921,10 @@ function exportCSV_SEND(data, currentTime, isTimedOut, isError, HEAP, FREE, CPU,
         MSG_ID: data.msg.MSG_ID,
         IS_FRAG: data.msg.FRAG,
         FRAG_ID: data.msg.FRAG_ID,
+        FRAG_LEN: data.msg.FRAG_LEN,
+        AGGREGATE: data.msg.AGG,
         MSG_TYPE: data.msg.FLAG,
-        DATA_LEN: data.msg.DATA.length,
+        DATA_LEN: calcmsgLen(msg),
         ERROR: "TIMEDOUT",
         timedout: data.timedout,
         T_SEND: data.timeSent,
@@ -907,8 +944,9 @@ function exportCSV_SEND(data, currentTime, isTimedOut, isError, HEAP, FREE, CPU,
         IS_FRAG: data.msg.FRAG,
         FRAG_ID: data.msg.FRAG_ID,
         FRAG_LEN: data.msg.FRAG_LEN,
+        AGGREGATE: data.msg.AGG,
         MSG_TYPE: data.msg.FLAG,
-        DATA_LEN: data.msg.DATA.length,
+        DATA_LEN: calcmsgLen(msg),
         ERROR: "ESP32",
         TIMEDOUT: data.timedout,
         T_SEND: data.timeSent,
@@ -928,8 +966,9 @@ function exportCSV_SEND(data, currentTime, isTimedOut, isError, HEAP, FREE, CPU,
         IS_FRAG: data.msg.FRAG,
         FRAG_ID: data.msg.FRAG_ID,
         FRAG_LEN: data.msg.FRAG_LEN,
+        AGGREGATE: data.msg.AGG,
         MSG_TYPE: data.msg.FLAG,
-        DATA_LEN: data.msg.DATA.length,
+        DATA_LEN: calcmsgLen(msg),
         ERROR: "NONE",
         TIMEDOUT: data.timedout,
         T_SEND: data.timeSent,
@@ -967,6 +1006,7 @@ const csvWriter_SEND = createCSVWriter_SEND({
     { id: "IS_FRAG", title: "IS_FRAG" },
     { id: "FRAG_ID", title: "FRAG_ID" },
     { id: "FRAG_LEN", title: "FRAG_LEN" },
+    { id: "AGGREGATE", title: "AGGREGATE"},
     { id: "MSG_TYPE", title: "MSG_TYPE" },
     { id: "DATA_LEN", title: "DATA_LEN" },
     { id: "ERROR", title: "ERROR" },
@@ -990,6 +1030,7 @@ const csvWriter_RECV = createCSVWriter_RECV({
     { id: "IS_FRAG", title: "IS_FRAG" },
     { id: "FRAG_ID", title: "FRAG_ID" },
     { id: "FRAG_LEN", title: "FRAG_LEN" },
+    { id: "AGGREGATE", title: "AGGREGATE"},
     { id: "DATA_LEN", title: "DATA_LEN" },
     { id: "T_RECV", title: "T_RECV" },
     { id: "HEAP", title: "HEAP" },
