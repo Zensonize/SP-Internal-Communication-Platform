@@ -348,7 +348,7 @@ const handler = {
   ACK: function (data) {
     let ACKREVTIME = Date.now();
 
-    for (const [i, msg] of SENT_BUFF.entries()) {
+    for (let [i, msg] of SENT_BUFF.entries()) {
       if (data.ACK_FRAG_ID == -1 && data.ACK_MSG_ID == msg.msg.MSG_ID) {
         console.log("ACK", data.ACK_MSG_ID, "RTT", ACKREVTIME - msg.timeSent);
         SENT_BUFF.splice(i, 1);
@@ -417,7 +417,7 @@ const handler = {
         //check if all of the fragmented message was acked
         fragLen = msg.msg.FRAG_LEN;
         ackedCount = 0;
-        for (const [j, m] of SENT_BUFF.entries()) {
+        for (let [j, m] of SENT_BUFF.entries()) {
           if (data.ACK_MSG_ID == m.msg.MSG_ID && m.ACKED) {
             ackedCount += 1;
           } else if (data.ACK_MSG_ID == m.msg.MSG_ID && !m.ACKED) {
@@ -426,7 +426,7 @@ const handler = {
         }
 
         if (ackedCount == msg.msg.FRAG_LEN) {
-          for (const [j, m] of SENT_BUFF.entries()) {
+          for (let [j, m] of SENT_BUFF.entries()) {
             if (data.ACK_MSG_ID == m.msg.MSG_ID) {
               SENT_BUFF.splice(j, 1);
             }
@@ -515,9 +515,8 @@ const handler = {
       console.log("RECEIVED ", data.MSG_ID, "ESP HEAP: ", data.HEAP);
       // console.log("msg is: ", data.DATA);
       // console.log("send msg to: ", present_room_id);
-      var extract_json_obj_list = JSON.parse(data.DATA);
-      for (i in extract_json_obj_list) {
-        extract_json_obj = data.DATA
+      for (i in data.DATA) {
+        extract_json_obj = JSON.parse(data.DATA[i]);
         // console.log(extract_json_obj)
         if (extract_json_obj.FLAG === "msg") {
           
@@ -563,7 +562,7 @@ const handler = {
         if (RECV_BUFF[data.FROM][data.MSG_ID].length == data.FRAG_LEN) {
           dataFull = "";
           for (index = 0; index < data.FRAG_LEN; index++) {
-            for (const [i, frag] of RECV_BUFF[data.FROM][
+            for (let [i, frag] of RECV_BUFF[data.FROM][
               data.MSG_ID
             ].entries()) {
               if (frag.FRAG_ID == index) {
@@ -722,7 +721,7 @@ function msgTimeout() {
     clearInterval(timeoutRoutine);
     timeoutRoutine = null;
   } else {
-    for (const [i, msg] of SENT_BUFF.entries()) {
+    for (let [i, msg] of SENT_BUFF.entries()) {
       if (msg.msg.FLAG === "ECHO") {
         SENT_BUFF.splice(i, 1);
       } else if (Date.now() - msg.timeSent >= config.TIMEOUT) {
@@ -766,7 +765,7 @@ function sendFragment(dataStr, dest, _id, FLAG) {
     },
   };
 
-  for (const [i, frag] of dataFrag.entries()) {
+  for (let [i, frag] of dataFrag.entries()) {
     msg.msg.DATA = frag;
     msg.msg.FRAG_ID = msg.msg.FRAG_ID++;
 
