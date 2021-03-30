@@ -615,47 +615,58 @@ function nextMSG_ID() {
   }
 }
 
+function pickNextMSG(aggDest) {
+  let pickedMsg = null;
+
+  while (true) {
+    shiftCount += 1;
+    let selectedMsg = JSON.parse(JSON.stringify(TO_SEND_BUFF[0]));
+
+    try {
+      if (selectedMsg.msg.FLAG == "ECHO") {
+        pickedMsg = selectedMsg;
+        TO_SEND_BUFF.splice(0, 1);
+        break;
+      } else if (ALL_SERVER[selectedMsg.to].status === "ONLINE") {
+        pickedMsg = selectedMsg;
+        TO_SEND_BUFF.splice(0, 1);
+        break;
+      } else {
+        TO_SEND_BUFF.push(selectedMsg);
+        TO_SEND_BUFF.splice(0, 1);
+        if (shiftCount == TO_SEND_BUFF.length) {
+          break;
+        }
+      }
+    } catch (err) {
+      console.log(
+        `err ${err} \n, ${selectedMsg},to send buff len ${TO_SEND_BUFF.length}`
+      );
+      console.log("to send bugg", TO_SEND_BUFF);
+      console.log("AllServer", ALL_SERVER);
+      break;
+    }
+  }
+
+  return pickedMsg
+}
+
 function sendToSerial() {
   let msgToSend = null;
   if (TO_SEND_BUFF.length) {
     let shiftCount = 0;
-    while (true) {
-      shiftCount += 1;
-      let selectedMsg = JSON.parse(JSON.stringify(TO_SEND_BUFF[0]));
-
-      try {
-        if (selectedMsg.msg.FLAG == "ECHO") {
-          msgToSend = selectedMsg;
-          TO_SEND_BUFF.splice(0, 1);
-          break;
-        } else if (ALL_SERVER[selectedMsg.to].status === "ONLINE") {
-          msgToSend = selectedMsg;
-          TO_SEND_BUFF.splice(0, 1);
-          break;
-        } else {
-          TO_SEND_BUFF.push(selectedMsg);
-          TO_SEND_BUFF.splice(0, 1);
-          if (shiftCount == TO_SEND_BUFF.length) {
-            break;
-          }
-        }
-      } catch (err) {
-        console.log(
-          `err ${err} \n, ${selectedMsg},to send buff len ${TO_SEND_BUFF.length}`
-        );
-        console.log("to send bugg", TO_SEND_BUFF);
-        console.log("AllServer", ALL_SERVER);
-        break;
-      }
-    }
+    msgToSend = pickNextMSG(null);
     // msgToSend = TO_SEND_BUFF.shift();
     if (msgToSend != null) {
-      console.log(
-        "\t sending",
-        msgToSend.msg.FLAG,
-        "ID:",
-        msgToSend.msg.MSG_ID
-      );
+      while (true) {
+        if (msgToSend.msg.FLAG === 'ECHO'){
+          break
+        }
+        else {
+          //aggregate the message
+        }
+      }
+      console.log("\t sending",msgToSend.msg.FLAG,"ID:",msgToSend.msg.MSG_ID);
       // console.log(msgToSend);
       PORT.write(JSON.stringify(msgToSend.msg));
       msgToSend.timeSent = Date.now();
@@ -667,10 +678,7 @@ function sendToSerial() {
       }
     } else {
       console.log(
-        "nothing to send all server is offline",
-        TO_SEND_BUFF.length,
-        "msg in queue"
-      );
+        "nothing to send all server is offline",TO_SEND_BUFF.length,"msg in queue");
       sendSerialInterval = null;
     }
   } else if (TO_SEND_BUFF.length) {
@@ -720,6 +728,7 @@ function sendFragment(dataStr, dest, _id, FLAG) {
       MSG_ID: nextMSG_ID(),
       FLAG: "DATA",
       FRAG: true,
+      AGG: false,
       FRAG_ID: 0,
       FRAG_LEN: dataFrag.length,
       TOA: convertDstAddr(dest)[0],
@@ -746,6 +755,7 @@ function sendSingle(dataStr, dest, _id, FLAG) {
       MSG_ID: nextMSG_ID(),
       FLAG: "DATA",
       FRAG: false,
+      AGG: false,
       DATA: dataStr,
       TOA: convertDstAddr(dest)[0],
       TOB: convertDstAddr(dest)[1],
