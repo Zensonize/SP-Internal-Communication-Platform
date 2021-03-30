@@ -891,10 +891,18 @@ function initNodeList() {
 //  console.log('free memory : ', bytesToSize(os.freemem()));
 //  console.log('total memory : ', bytesToSize(os.totalmem()));
 
-function calcmsgLen(msg){
+function calcmsgLenSend(msg){
   ml = 0
-  for (i in msg.msg.data){
+  for (i in msg.msg.DATA){
     ml += msg.msg.DATA[i].length
+  }
+  return ml
+}
+
+function calcmsgLenRecv(msg){
+  ml = 0
+  for (i in msg.DATA){
+    ml += msg.DATA[i].length
   }
   return ml
 }
@@ -906,7 +914,7 @@ function exportCSV_RECV(data, recvTime) {
       IS_FRAG: data.FRAG,
       FRAG_ID: data.FRAG_ID,
       FRAG_LEN: data.FRAG_LEN,
-      DATA_LEN: calcmsgLen(data),
+      DATA_LEN: calcmsgLenRecv(data),
       T_RECV: recvTime,
       HEAP: data.HEAP,
       Free_Mem: bytesToSize(os.freemem()),
@@ -926,7 +934,7 @@ function exportCSV_SEND(data, currentTime, isTimedOut, isError, HEAP, FREE, CPU,
         FRAG_LEN: data.msg.FRAG_LEN,
         AGGREGATE: data.msg.AGG,
         MSG_TYPE: data.msg.FLAG,
-        DATA_LEN: calcmsgLen(msg),
+        DATA_LEN: calcmsgLenSend(msg),
         ERROR: "TIMEDOUT",
         timedout: data.timedout,
         T_SEND: data.timeSent,
@@ -948,7 +956,7 @@ function exportCSV_SEND(data, currentTime, isTimedOut, isError, HEAP, FREE, CPU,
         FRAG_LEN: data.msg.FRAG_LEN,
         AGGREGATE: data.msg.AGG,
         MSG_TYPE: data.msg.FLAG,
-        DATA_LEN: calcmsgLen(msg),
+        DATA_LEN: calcmsgLenSend(msg),
         ERROR: "ESP32",
         TIMEDOUT: data.timedout,
         T_SEND: data.timeSent,
@@ -970,7 +978,7 @@ function exportCSV_SEND(data, currentTime, isTimedOut, isError, HEAP, FREE, CPU,
         FRAG_LEN: data.msg.FRAG_LEN,
         AGGREGATE: data.msg.AGG,
         MSG_TYPE: data.msg.FLAG,
-        DATA_LEN: calcmsgLen(msg),
+        DATA_LEN: calcmsgLenSend(msg),
         ERROR: "NONE",
         TIMEDOUT: data.timedout,
         T_SEND: data.timeSent,
