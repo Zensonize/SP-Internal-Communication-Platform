@@ -682,7 +682,7 @@ function pickNextMSG() {
         pickedMsg.msg.AGG += 1;
         pickedMsg.msg.DATA.push(TO_SEND_BUFF[nextCandidate].msg.DATA[0]);
         pickedMsg.FFLAG.push(TO_SEND_BUFF[nextCandidate].FFLAG[0]);
-        totalMsgLen += TO_SEND_BUFF[nextCandidate].msg.DATA.length;
+        totalMsgLen += TO_SEND_BUFF[nextCandidate].msg.DATA[0].length;
         console.log('aggregated MSG',TO_SEND_BUFF[nextCandidate].msg.MSG_ID, 'to MSG',pickedMsg.msg.MSG_ID, 'new length', totalMsgLen)
         TO_SEND_BUFF.splice(nextCandidate, 1);
       }
