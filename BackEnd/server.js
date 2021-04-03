@@ -622,6 +622,7 @@ function nextMSG_ID() {
 function pickNextMSG() {
   let pickedMsg = null;
   let shiftCount = 0;
+  // let ORIGINAL_MSG_QUEUE = []
 
   while (true) {
     shiftCount += 1;
@@ -631,7 +632,7 @@ function pickNextMSG() {
       if (selectedMsg.msg.FLAG == "ECHO") {
         pickedMsg = selectedMsg;
         TO_SEND_BUFF.splice(0, 1);
-        break;
+        return pickedMsg
       } else if (ALL_SERVER[selectedMsg.to].status === "ONLINE") {
         pickedMsg = selectedMsg;
         TO_SEND_BUFF.splice(0, 1);
@@ -653,15 +654,16 @@ function pickNextMSG() {
     }
   }
 
-  if (pickedMsg == null){
-    return pickedMsg
-  }
-  else if (pickedMsg.msg.FLAG == "ECHO"){
+  if (pickedMsg.msg.FLAG == "ECHO"){
     return pickedMsg
   }
   else {
+    // ORIGINAL_MSG_QUEUE.push(JSON.stringify(pickedMsg));
+
     totalMsgLen = pickedMsg.msg.DATA[0].length;
-    while (totalMsgLen < 1100){
+    console.log('begin aggregation with length', totalMsgLen);
+
+    while (totalMsgLen < config.MTU){
       nextCandidate = null
       for (i in TO_SEND_BUFF) {
         if (TO_SEND_BUFF[i].msg.FLAG != "ECHO" && TO_SEND_BUFF[i].to == pickedMsg.to && !TO_SEND_BUFF[i].msg.FRAG){
@@ -672,7 +674,7 @@ function pickNextMSG() {
       if (nextCandidate == null) {
         console.log('Aggregation stop there is no suitable candidate')
         break;
-      } else if (totalMsgLen + TO_SEND_BUFF[nextCandidate].msg.DATA[0].length >= 1100){
+      } else if (totalMsgLen + TO_SEND_BUFF[nextCandidate].msg.DATA[0].length > config.MTU){
         console.log('Aggregation stop result will exceed MTU')
         break;
       } else {
@@ -682,7 +684,7 @@ function pickNextMSG() {
         pickedMsg.FFLAG.push(TO_SEND_BUFF[nextCandidate].FFLAG[0]);
         totalMsgLen += TO_SEND_BUFF[nextCandidate].msg.DATA.length;
         console.log('aggregated MSG',TO_SEND_BUFF[nextCandidate].msg.MSG_ID, 'to MSG',pickedMsg.msg.MSG_ID, 'new length', totalMsgLen)
-        TO_SEND_BUFF.splice(0, 1);
+        TO_SEND_BUFF.splice(nextCandidate, 1);
       }
     }
   }
@@ -802,10 +804,12 @@ function sendData(data, dest, _id) {
     //send data in fragment
     if (dest === "ALL") {
       for (var server in ALL_SERVER) {
-        if (ALL_SERVER[server].status === "ONLINE") {
-          console.log("will send to", server);
-          sendFragment(dataStr, server, _id, data.FLAG);
-        }
+        console.log("will send to", server);
+        sendFragment(dataStr, server, _id, data.FLAG);
+        // if (ALL_SERVER[server].status === "ONLINE") {
+        //   console.log("will send to", server);
+        //   sendFragment(dataStr, server, _id, data.FLAG);
+        // }
       }
     } else {
       sendFragment(dataStr, dest, _id, data.FLAG);
@@ -813,9 +817,11 @@ function sendData(data, dest, _id) {
   } else {
     if (dest === "ALL") {
       for (var server in ALL_SERVER) {
+        console.log("will send to", server, ALL_SERVER[server]);
+        sendSingle(dataStr, server, _id, data.FLAG);
         if (ALL_SERVER[server].status === "ONLINE") {
-          console.log("will send to", server, ALL_SERVER[server]);
-          sendSingle(dataStr, server, _id, data.FLAG);
+          // console.log("will send to", server, ALL_SERVER[server]);
+          // sendSingle(dataStr, server, _id, data.FLAG);
         }
       }
     } else {
