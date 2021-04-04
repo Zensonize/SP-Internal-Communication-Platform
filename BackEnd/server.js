@@ -636,7 +636,10 @@ function pickNextMSG() {
       } else if (ALL_SERVER[selectedMsg.to].status === "ONLINE") {
         pickedMsg = selectedMsg;
         TO_SEND_BUFF.splice(0, 1);
-        if (ALL_SERVER[selectedMsg.to].msg.AGG != 1){
+        if (selectedMsg.msg.FRAG) {
+          return pickedMsg
+        }
+        if (selectedMsg.msg.AGG != 1){
           return pickedMsg
         }
         break;
@@ -656,42 +659,41 @@ function pickNextMSG() {
       break;
     }
   }
-
-  if (pickedMsg.msg.FLAG == "ECHO"){
+  if (pickedMsg == null) {
+    console.log("no candidate");
     return pickedMsg
   }
-  else {
-    // ORIGINAL_MSG_QUEUE.push(JSON.stringify(pickedMsg));
+  // ORIGINAL_MSG_QUEUE.push(JSON.stringify(pickedMsg));
 
-    totalMsgLen = pickedMsg.msg.DATA[0].length;
-    console.log('begin aggregation with length', totalMsgLen);
+  totalMsgLen = pickedMsg.msg.DATA[0].length;
+  console.log('begin aggregation with length', totalMsgLen);
 
-    while (totalMsgLen < config.MTU){
-      nextCandidate = null
-      for (i in TO_SEND_BUFF) {
-        if (TO_SEND_BUFF[i].msg.FLAG != "ECHO" && TO_SEND_BUFF[i].to == pickedMsg.to && !TO_SEND_BUFF[i].msg.FRAG && TO_SEND_BUFF[i].msg.AGG == 1){
-          nextCandidate = i
-          console.log('trying to aggregate MSG',TO_SEND_BUFF[nextCandidate].msg.MSG_ID, 'to MSG',pickedMsg.msg.MSG_ID, 'original length',totalMsgLen)
-        }
-      }
-      if (nextCandidate == null) {
-        console.log('Aggregation stop there is no suitable candidate')
-        break;
-      } else if (totalMsgLen + TO_SEND_BUFF[nextCandidate].msg.DATA[0].length > config.MTU){
-        console.log('Aggregation stop result will exceed MTU')
-        break;
-      } else {
-        pickedMsg.id.push(TO_SEND_BUFF[nextCandidate].id[0]);
-        pickedMsg.msg.AGG += 1;
-        pickedMsg.msg.DATA.push(TO_SEND_BUFF[nextCandidate].msg.DATA[0]);
-        pickedMsg.FFLAG.push(TO_SEND_BUFF[nextCandidate].FFLAG[0]);
-        totalMsgLen += TO_SEND_BUFF[nextCandidate].msg.DATA[0].length;
-        console.log('aggregated MSG',TO_SEND_BUFF[nextCandidate].msg.MSG_ID, 'to MSG',pickedMsg.msg.MSG_ID, 'new length', totalMsgLen)
-        TO_SEND_BUFF.splice(nextCandidate, 1);
+  while (totalMsgLen < config.MTU){
+    nextCandidate = null
+    for (i in TO_SEND_BUFF) {
+      if (TO_SEND_BUFF[i].msg.FLAG != "ECHO" && TO_SEND_BUFF[i].to == pickedMsg.to && !TO_SEND_BUFF[i].msg.FRAG && TO_SEND_BUFF[i].msg.AGG == 1){
+        nextCandidate = i
+        console.log('trying to aggregate MSG',TO_SEND_BUFF[nextCandidate].msg.MSG_ID, 'to MSG',pickedMsg.msg.MSG_ID, 'original length',totalMsgLen)
       }
     }
+    if (nextCandidate == null) {
+      console.log('Aggregation stop there is no suitable candidate')
+      break;
+    } else if (totalMsgLen + TO_SEND_BUFF[nextCandidate].msg.DATA[0].length > config.MTU){
+      console.log('Aggregation stop result will exceed MTU')
+      break;
+    } else {
+      pickedMsg.id.push(TO_SEND_BUFF[nextCandidate].id[0]);
+      pickedMsg.msg.AGG += 1;
+      pickedMsg.msg.DATA.push(TO_SEND_BUFF[nextCandidate].msg.DATA[0]);
+      pickedMsg.FFLAG.push(TO_SEND_BUFF[nextCandidate].FFLAG[0]);
+      totalMsgLen += TO_SEND_BUFF[nextCandidate].msg.DATA[0].length;
+      console.log('aggregated MSG',TO_SEND_BUFF[nextCandidate].msg.MSG_ID, 'to MSG',pickedMsg.msg.MSG_ID, 'new length', totalMsgLen)
+      TO_SEND_BUFF.splice(nextCandidate, 1);
+    }
   }
-  console.log('aggregated result', pickedMsg)
+
+  console.log('aggregated final length', totalMsgLen, 'aggregated', pickedMsg.msg.AGG)
   return pickedMsg
 }
 
