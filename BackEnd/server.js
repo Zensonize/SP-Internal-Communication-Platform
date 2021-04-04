@@ -636,6 +636,9 @@ function pickNextMSG() {
       } else if (ALL_SERVER[selectedMsg.to].status === "ONLINE") {
         pickedMsg = selectedMsg;
         TO_SEND_BUFF.splice(0, 1);
+        if (ALL_SERVER[selectedMsg.to].msg.AGG != 1){
+          return pickedMsg
+        }
         break;
       } else {
         TO_SEND_BUFF.push(selectedMsg);
@@ -666,7 +669,7 @@ function pickNextMSG() {
     while (totalMsgLen < config.MTU){
       nextCandidate = null
       for (i in TO_SEND_BUFF) {
-        if (TO_SEND_BUFF[i].msg.FLAG != "ECHO" && TO_SEND_BUFF[i].to == pickedMsg.to && !TO_SEND_BUFF[i].msg.FRAG){
+        if (TO_SEND_BUFF[i].msg.FLAG != "ECHO" && TO_SEND_BUFF[i].to == pickedMsg.to && !TO_SEND_BUFF[i].msg.FRAG && TO_SEND_BUFF[i].msg.AGG == 1){
           nextCandidate = i
           console.log('trying to aggregate MSG',TO_SEND_BUFF[nextCandidate].msg.MSG_ID, 'to MSG',pickedMsg.msg.MSG_ID, 'original length',totalMsgLen)
         }
