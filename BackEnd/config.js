@@ -10,7 +10,7 @@ config.db = "mongodb://127.0.0.1:27017/chat"
 config.SERIAL_PORT = '/dev/ttyUSB0';
 config.BACKEND_LISTEN = 'http://127.0.0.1:3000';
 config.ESP32_EMIT = '';
-config.TIMEOUT = 5000;
+config.TIMEOUT = [0,5000,10000,10000,10000,10000,10000,10000];
 config.BUADRATE = 921600;
 config.MTU = 1000;
 

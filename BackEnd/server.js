@@ -301,6 +301,7 @@ const handler = {
     if (data.FROM in ALL_SERVER) {
       if (ALL_SERVER[data.FROM].status === "OFFLINE") {
         console.warn("Server", ALL_SERVER[data.FROM].name, "back online");
+        ALL_SERVER[data.FROM].hop = calcHop(data.FROM,TOPOLOGY);
       }
       ALL_SERVER[data.FROM].status = "ONLINE";
     } else {
@@ -308,6 +309,7 @@ const handler = {
       ALL_SERVER[data.FROM].name = data.SERVER_NAME;
       ALL_SERVER[data.FROM].status = "ONLINE";
       console.log("added new server", ALL_SERVER[data.FROM].name);
+      ALL_SERVER[data.FROM].hop = calcHop(data.FROM,TOPOLOGY);
       RECV_BUFF[data.FROM] = {};
 
       NodeSchema_list.updateOne(
@@ -441,7 +443,8 @@ const handler = {
   CHANGED_CONNECTION: function (data) {
     NODE_LIST = data.NODE_LIST.split(",");
     TOPOLOGY = JSON.parse(data.TOPOLOGY_JSON);
-    console.log("TOPOLOGY: ", TOPOLOGY);
+    // console.log("TOPOLOGY: ", TOPOLOGY);
+    console.log('TOPOLOGY CHANGED:', data.TOPOLOGY_JSON)
     NODE_LIST.splice(NODE_LIST.indexOf(selfID), 1);
 
     // console.log("ALL_NODE BEFORE", ALL_NODE);
@@ -458,6 +461,7 @@ const handler = {
             ALL_SERVER[key].status = "ONLINE";
             console.log("notice: server",key,ALL_SERVER[key].name,"back online");
             exportCSV_NODE(Date.now(),key,"ONLINE",true,ALL_SERVER[key].name,"CHANGED_CONNECTION")
+            ALL_SERVER[key].hop = calcHop(key,TOPOLOGY);
             if (TO_SEND_BUFF.length) {
               setSerialRoutine();
             }
@@ -467,6 +471,7 @@ const handler = {
           }
         }
         ALL_NODE[key].status = "ONLINE";
+        ALL_NODE[key].hop = calcHop(key,TOPOLOGY);
         NODE_LIST.splice(NODE_LIST.indexOf(key), 1);
       } else {
         if (ALL_NODE[key].status === "ONLINE") {
@@ -483,14 +488,15 @@ const handler = {
       }
     }
 
-    // console.log("ALL_NODE new Status", ALL_NODE);
-    // console.log("ALL_SERVER new Status", ALL_SERVER);
+    console.log("ALL_NODE Final Status", ALL_NODE);
+    console.log("ALL_SERVER Final Status", ALL_SERVER);
 
     //add new node to database
     NODE_LIST.forEach((item, index) => {
-      console.log("NEW NODE", item, "index", index, "ONLINE");
+      console.log("NEW NODE", item, "ONLINE");
       ALL_NODE[item] = {
         status: "ONLINE",
+        hop: calcHop(item)
       };
       let new_node = new NodeSchema_list({
         nodeID: item,
@@ -731,7 +737,7 @@ function msgTimeout() {
     for (let [i, msg] of SENT_BUFF.entries()) {
       if (msg.msg.FLAG === "ECHO") {
         SENT_BUFF.splice(i, 1);
-      } else if (Date.now() - msg.timeSent >= config.TIMEOUT) {
+      } else if (Date.now() - msg.timeSent >= config.TIMEOUT[ALL_SERVER[msg.to].hop]) {
         currentTime = Date.now();
         var timedoutMsg = msg;
 
@@ -875,6 +881,7 @@ function initNodeList() {
       console.log(key);
       ALL_NODE[key] = {
         status: "OFFLINE",
+        hop: -1
       };
     });
 
@@ -891,6 +898,7 @@ function initNodeList() {
       ALL_SERVER[SERVER_LIST[server].nodeID] = {
         status: "OFFLINE",
         name: SERVER_LIST[server].nodeName,
+        hop: -1
       };
     }
     console.log("SERVER LIST", SERVER_LIST);
@@ -1015,6 +1023,24 @@ function exportCSV_NODE(currentTime, nodeID, event, isServer, serverName, source
       SOURCE: source
     },
   ]);
+}
+
+function calcHop(node, tp) {
+
+  if (node === String(tp.nodeId)){
+    return 0
+  }
+  else if ("subs" in tp) {
+    for (i in tp.subs) {
+      var dfs = calcHop(node, tp.subs[i]);
+      if (dfs != -1) {
+          return 1 + dfs
+      }
+    }
+    return -1
+  } else {
+    return -1
+  }
 }
 
 //function for logging data
