@@ -460,27 +460,31 @@ const handler = {
             // console.log("KEY", key, "data in ALL_SERVER", ALL_SERVER[key]);
             ALL_SERVER[key].status = "ONLINE";
             console.log("notice: server",key,ALL_SERVER[key].name,"back online");
-            exportCSV_NODE(Date.now(),key,"ONLINE",true,ALL_SERVER[key].name,"CHANGED_CONNECTION")
             ALL_SERVER[key].hop = calcHop(key,TOPOLOGY);
+            ALL_NODE[key].hop = calcHop(key,TOPOLOGY);
+            exportCSV_NODE(Date.now(),key,"ONLINE",true,ALL_SERVER[key].name,"CHANGED_CONNECTION")
             if (TO_SEND_BUFF.length) {
               setSerialRoutine();
             }
           } else {
             console.log("notice: node", key, "back online");
+            ALL_NODE[key].hop = calcHop(key,TOPOLOGY);
             exportCSV_NODE(Date.now(),key,"ONLINE",false,"-","CHANGED_CONNECTION")
           }
         }
         ALL_NODE[key].status = "ONLINE";
-        ALL_NODE[key].hop = calcHop(key,TOPOLOGY);
         NODE_LIST.splice(NODE_LIST.indexOf(key), 1);
       } else {
         if (ALL_NODE[key].status === "ONLINE") {
           if (key in ALL_SERVER) {
             ALL_SERVER[key].status = "OFFLINE";
             console.log("notice: server",key,ALL_SERVER[key].name,"went offline");
+            ALL_SERVER[key].hop = -1;
+            ALL_NODE[key].hop = -1;
             exportCSV_NODE(Date.now(),key,"OFFLINE",true,ALL_SERVER[key].name,"CHANGED_CONNECTION")
           } else {
             console.log("notice: node", key, "went offline");
+            ALL_NODE[key].hop = -1;
             exportCSV_NODE(Date.now(),key,"OFFLINE",false,"-","CHANGED_CONNECTION")
           }
         }
@@ -954,7 +958,7 @@ function exportCSV_SEND(data, currentTime, isTimedOut, isError, HEAP, FREE, CPU,
         FRAG_LEN: data.msg.FRAG_LEN,
         AGGREGATE: data.msg.AGG,
         MSG_TYPE: data.msg.FLAG,
-        DATA_LEN: calcmsgLenSend(msg),
+        DATA_LEN: calcmsgLenSend(data),
         ERROR: "TIMEDOUT",
         timedout: data.timedout,
         T_SEND: data.timeSent,
@@ -977,7 +981,7 @@ function exportCSV_SEND(data, currentTime, isTimedOut, isError, HEAP, FREE, CPU,
         FRAG_LEN: data.msg.FRAG_LEN,
         AGGREGATE: data.msg.AGG,
         MSG_TYPE: data.msg.FLAG,
-        DATA_LEN: calcmsgLenSend(msg),
+        DATA_LEN: calcmsgLenSend(data),
         ERROR: "ESP32",
         TIMEDOUT: data.timedout,
         T_SEND: data.timeSent,
@@ -1000,7 +1004,7 @@ function exportCSV_SEND(data, currentTime, isTimedOut, isError, HEAP, FREE, CPU,
         FRAG_LEN: data.msg.FRAG_LEN,
         AGGREGATE: data.msg.AGG,
         MSG_TYPE: data.msg.FLAG,
-        DATA_LEN: calcmsgLenSend(msg),
+        DATA_LEN: calcmsgLenSend(data),
         ERROR: "NONE",
         TIMEDOUT: data.timedout,
         T_SEND: data.timeSent,
