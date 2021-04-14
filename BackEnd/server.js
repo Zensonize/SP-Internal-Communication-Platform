@@ -16,8 +16,6 @@ const cpu_usage = (data) => {
 	// return console.log(`${os.loadavg()[1].toFixed(2)} %`);
 }
 
-
-
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", config.host);
   res.header(
@@ -286,7 +284,7 @@ let MSG_ID = 0;
 let ALL_SERVER = {};
 let ALL_NODE = {};
 let TOPOLOGY = {};
-let selfID = "";
+let selfID = config.selfID;
 
 initNodeList();
 
@@ -336,6 +334,9 @@ const handler = {
       ALL_SERVER[recentSend.to].status = "OFFLINE";
       console.log("Server", ALL_SERVER[recentSend.to].name, "went OFFLINE");
       exportCSV_NODE(Date.now(),recentSend.to,"OFFINE",true,ALL_SERVER[recentSend.to].name,"MSG")
+      
+      recentSend.timedout += 1;
+      TO_SEND_BUFF.push(recentSend)
     } else {
       console.log("ESP is ready to send next");
     }
@@ -610,7 +611,7 @@ function echoServer(dest) {
     msg: {
       MSG_ID: nextMSG_ID(),
       FLAG: "ECHO",
-      SERVER_NAME: "SERVER A",
+      SERVER_NAME: config.SERVER_NAME,
       TOA: convertDstAddr(dest)[0],
       TOB: convertDstAddr(dest)[1],
     },
@@ -684,8 +685,10 @@ function pickNextMSG() {
       if (TO_SEND_BUFF[i].msg.FLAG != "ECHO" && TO_SEND_BUFF[i].to == pickedMsg.to && !TO_SEND_BUFF[i].msg.FRAG && TO_SEND_BUFF[i].msg.AGG == 1){
         nextCandidate = i
         console.log('trying to aggregate MSG',TO_SEND_BUFF[nextCandidate].msg.MSG_ID, 'to MSG',pickedMsg.msg.MSG_ID, 'original length',totalMsgLen)
+        break;
       }
     }
+
     if (nextCandidate == null) {
       console.log('Aggregation stop there is no suitable candidate')
       break;
@@ -695,6 +698,8 @@ function pickNextMSG() {
     } else {
       pickedMsg.id.push(TO_SEND_BUFF[nextCandidate].id[0]);
       pickedMsg.msg.AGG += 1;
+      pickedMsg.AGGED += String(TO_SEND_BUFF[nextCandidate].msg.MSG_ID);
+      pickedMsg.AGGED += " ";
       pickedMsg.msg.DATA.push(TO_SEND_BUFF[nextCandidate].msg.DATA[0]);
       pickedMsg.FFLAG.push(TO_SEND_BUFF[nextCandidate].FFLAG[0]);
       totalMsgLen += TO_SEND_BUFF[nextCandidate].msg.DATA[0].length;
@@ -703,7 +708,7 @@ function pickNextMSG() {
     }
   }
 
-  console.log('aggregated final length', totalMsgLen, 'aggregated', pickedMsg.msg.AGG)
+  console.log('aggregated final length', totalMsgLen, 'aggregated', pickedMsg.msg.AGG, 'contains', pickedMsg.AGGED)
   return pickedMsg
 }
 
@@ -797,6 +802,7 @@ function sendSingle(dataStr, dest, _id, FLAG) {
     to: dest,
     id: [_id],
     FFLAG: [FLAG],
+    AGGED: "",
     msg: {
       MSG_ID: nextMSG_ID(),
       FLAG: "DATA",
@@ -957,6 +963,7 @@ function exportCSV_SEND(data, currentTime, isTimedOut, isError, HEAP, FREE, CPU,
         FRAG_ID: data.msg.FRAG_ID,
         FRAG_LEN: data.msg.FRAG_LEN,
         AGGREGATE: data.msg.AGG,
+        AGGED: data.AGGED,
         MSG_TYPE: data.msg.FLAG,
         DATA_LEN: calcmsgLenSend(data),
         ERROR: "TIMEDOUT",
@@ -980,6 +987,7 @@ function exportCSV_SEND(data, currentTime, isTimedOut, isError, HEAP, FREE, CPU,
         FRAG_ID: data.msg.FRAG_ID,
         FRAG_LEN: data.msg.FRAG_LEN,
         AGGREGATE: data.msg.AGG,
+        AGGED: data.AGGED,
         MSG_TYPE: data.msg.FLAG,
         DATA_LEN: calcmsgLenSend(data),
         ERROR: "ESP32",
@@ -1003,6 +1011,7 @@ function exportCSV_SEND(data, currentTime, isTimedOut, isError, HEAP, FREE, CPU,
         FRAG_ID: data.msg.FRAG_ID,
         FRAG_LEN: data.msg.FRAG_LEN,
         AGGREGATE: data.msg.AGG,
+        AGGED: data.AGGED,
         MSG_TYPE: data.msg.FLAG,
         DATA_LEN: calcmsgLenSend(data),
         ERROR: "NONE",
@@ -1063,6 +1072,7 @@ const csvWriter_SEND = createCSVWriter_SEND({
     { id: "FRAG_ID", title: "FRAG_ID" },
     { id: "FRAG_LEN", title: "FRAG_LEN" },
     { id: "AGGREGATE", title: "AGGREGATE"},
+    { id: "AGGED", title: "AGGED"},
     { id: "MSG_TYPE", title: "MSG_TYPE" },
     { id: "DATA_LEN", title: "DATA_LEN" },
     { id: "ERROR", title: "ERROR" },

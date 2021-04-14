@@ -13,5 +13,6 @@ config.ESP32_EMIT = '';
 config.TIMEOUT = [0,5000,10000,10000,10000,10000,10000,10000];
 config.BUADRATE = 921600;
 config.MTU = 1000;
-
+config.selfID = "3047322725";
+config.SERVER_NAME = "SERVER B";
 module.exports = config;
