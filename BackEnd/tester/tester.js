@@ -9,7 +9,7 @@ var room = 'test'
 // console.log(obj)
 
 
-const socket = io("http://192.168.20.235:3000/", {
+const socket = io("http://192.168.5.1:3000/", {
   reconnectionDelayMax: 10000,
   
 });

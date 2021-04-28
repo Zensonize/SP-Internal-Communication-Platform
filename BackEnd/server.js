@@ -461,15 +461,26 @@ const handler = {
             // console.log("KEY", key, "data in ALL_SERVER", ALL_SERVER[key]);
             ALL_SERVER[key].status = "ONLINE";
             console.log("notice: server",key,ALL_SERVER[key].name,"back online");
-            ALL_SERVER[key].hop = calcHop(key,TOPOLOGY);
-            ALL_NODE[key].hop = calcHop(key,TOPOLOGY);
+            try {
+              ALL_SERVER[key].hop = calcHop(key,TOPOLOGY);
+              ALL_NODE[key].hop = ALL_SERVER[key].hop
+            } catch (err) {
+              ALL_SERVER[key].hop = "ERROR"
+              ALL_NODE[key].hop = "ERROR"
+              console.log("error,",err.name, err.message,",when calculating network hop for server", key, "TOPOLOGY", TOPOLOGY);
+            }        
             exportCSV_NODE(Date.now(),key,"ONLINE",true,ALL_SERVER[key].name,"CHANGED_CONNECTION")
             if (TO_SEND_BUFF.length) {
               setSerialRoutine();
             }
           } else {
             console.log("notice: node", key, "back online");
-            ALL_NODE[key].hop = calcHop(key,TOPOLOGY);
+            try {
+              ALL_NODE[key].hop = calcHop(key,TOPOLOGY);
+            } catch (err) {
+              console.log("error,",err.name, err.message,",when calculating network hop for node", key, "TOPOLOGY", TOPOLOGY);
+              ALL_NODE[key].hop = "ERROR"
+            }
             exportCSV_NODE(Date.now(),key,"ONLINE",false,"-","CHANGED_CONNECTION")
           }
         }
@@ -499,20 +510,23 @@ const handler = {
     //add new node to database
     NODE_LIST.forEach((item, index) => {
       console.log("NEW NODE", item, "ONLINE");
-      ALL_NODE[item] = {
-        status: "ONLINE",
-        hop: calcHop(item)
-      };
-      let new_node = new NodeSchema_list({
-        nodeID: item,
-        isServer: false,
-        nodeName: "",
-      });
-      new_node.save((err, result) => {
-        if (err) throw err;
-        console.log(result);
-      });
-
+      try {
+        ALL_NODE[item] = {
+          status: "ONLINE",
+          hop: calcHop(item,TOPOLOGY)
+        };
+        let new_node = new NodeSchema_list({
+          nodeID: item,
+          isServer: false,
+          nodeName: "",
+        });
+        new_node.save((err, result) => {
+          if (err) throw err;
+          console.log(result);
+        });
+      } catch (err) {
+        console.log("error,",err.name, err.message,",when calculating network hop for new node", item, "TOPOLOGY", TOPOLOGY);
+      }
       echoServer(item);
     });
 
@@ -622,7 +636,7 @@ function echoServer(dest) {
 
 function nextMSG_ID() {
   //a function to prevent MSG_ID to go over MAX_INT
-  if (MSG_ID == 1000000) {
+  if (MSG_ID == 10000) {
     MSG_ID = 0;
     return MSG_ID;
   } else {
@@ -743,6 +757,8 @@ function msgTimeout() {
     clearInterval(timeoutRoutine);
     timeoutRoutine = null;
   } else {
+    toSplice = []
+
     for (let [i, msg] of SENT_BUFF.entries()) {
       if (msg.msg.FLAG === "ECHO") {
         SENT_BUFF.splice(i, 1);
@@ -756,14 +772,20 @@ function msgTimeout() {
 
         if (timedoutMsg.timedout >= 5) {
           console.log("TIMEDOUT:", timedoutMsg.msg.MSG_ID, "discarded this message at", (currentTime - msg.timeSent) / 1000, "sec" );
+          toSplice.push(i)
         } else {
           console.log("TIMEDOUT:",timedoutMsg.msg.MSG_ID,"will retry sending",(currentTime - msg.timeSent) / 1000,"sec");
           TO_SEND_BUFF.push(timedoutMsg);
-          SENT_BUFF.splice(i, 1);
+          // SENT_BUFF.splice(i, 1);
+          toSplice.push(i)
           setSerialRoutine();
         }
       }
     }
+
+    toSplice.forEach((item, index) => {
+      SENT_BUFF.splice(item,1)
+    })
   }
 }
 
