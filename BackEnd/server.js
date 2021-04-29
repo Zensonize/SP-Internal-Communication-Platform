@@ -1,7 +1,15 @@
 var app = require("express")();
 var config = require("./config");
 var schema = require("./db/schema");
+const moment = require("moment");
+const { error } = require("console");
+var mongoose = require("mongoose");
+const cors = require('cors')
+
+app.use(cors())
+
 const os = require("os");
+
 const bytesToSize = (bytes) => {
   const sizes = ["Bytes", "KiB", "MiB", "GiB"];
   // if (bytes == 0) return "0 Byte";
@@ -16,33 +24,18 @@ const cpu_usage = (data) => {
 	// return console.log(`${os.loadavg()[1].toFixed(2)} %`);
 }
 
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", config.host);
-  res.header(
-    "Access-Control-Allow-Methods",
-    "POST, GET, PUT, PATCH, DELETE, OPTIONS"
-  );
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Option, Authorization"
-  );
-  next();
-});
-
 app.get("/", function (req, res) {
   res.render("/", { tile: "Emergency Chat System V1.1" });
 });
+
 var http = require("http").Server(app);
-
 var io = require("socket.io")(http);
-
-var mongoose = require("mongoose");
 let users = [];
 let msg_room_2 = [];
 var room_lists = [];
 var lists = [];
 var present_room_id = "";
-const moment = require("moment");
+
 moment.locale("th");
 
 mongoose.connect(config.db, {
@@ -211,47 +204,62 @@ io.on("connection", (socket) => {
     console.log(`${socket.username} said '${msg}'`);
 
     let message = mongoose.model(present_room_id, ChatSchema);
-    let save_msg = new message({
-      username: user,
-      msg: msg,
-      date: new moment().format("DD/MM/YYYY HH:mm:ss"),
-      room: present_room_id,
-      FLAG: "msg",
-      owner: selfID,
-    });
-    socket.join(room, () => {
-      save_msg.save((err, result) => {
-        if (err) throw err;
-        // console.log(result);
-        msg_room_2.push(result);
-        io.to(room).emit("msg_room", result);
-
-        let msgtoSync = result;
-        msgtoSync["FLAG"] = "msg";
-
-        sendData(msgtoSync, "ALL", result.id);
-        // setTimeout(() => {
-        //   sendData(msgtoSync, "ALL", result.id);
-        // }, 750);
+    if(msg.file){
+      let save_msg = new message({
+        username: user,
+        msg: " ",
+        date: new moment().format("DD/MM/YYYY HH:mm:ss"),
+        room: present_room_id,
+        data: { data: new Buffer.from(msg.file).toString("base64"),
+                name: msg.file_name,
+                contentType: msg.content_type},
+        FLAG: 'msg',
+        owner: selfID,
       });
-    });
-    //   socket.on("passthrough"), (payload) => {
-    //     sendData(payload);
-    // }
-
+      socket.join(room, () => {
+        save_msg.save((err, result) => {
+          if (err) throw err;
+          console.log("query msg _id: ",result.id)
+          msg_room_2.push(result);
+          io.to(room).emit("msg_room", result);
+          let msgtoSync = result;
+          msgtoSync["FLAG"] = "msg";
+  
+          sendData(msgtoSync, "ALL", result.id);
+        });
+      });
+    }
+    else{
+      let save_msg = new message({
+        username: user,
+        msg: msg.msg,
+        date: new moment().format("DD/MM/YYYY HH:mm:ss"),
+        room: present_room_id,
+        FLAG: 'msg',
+        owner: selfID,
+      });
+      socket.join(room, () => {
+        save_msg.save((err, result) => {
+          if (err) throw err;
+          console.log(result);
+          console.log("query msg _id: ",result.id)
+          msg_room_2.push(result);
+          io.to(room).emit("msg_room", result);
+          let msgtoSync = result;
+          msgtoSync["FLAG"] = "msg";
+  
+          sendData(msgtoSync, "ALL", result.id);
+        });
+      });
+    }
     return (present_room_id = room);
   });
 
   // Disconnect
   socket.on("disconnect", () => {
-    if (socket.username) {
-      // throw socket.username
-      users.splice(users.indexOf(socket), 0);
-    } else {
       console.log(`${socket.username} has left the chat.`);
       io.emit("userLeft", socket.username);
       users.splice(users.indexOf(socket), 1);
-    }
   });
 });
 
@@ -550,34 +558,68 @@ const handler = {
           let msg_in_chat = extract_json_obj.msg;
           let date_in_chat = extract_json_obj.date;
           let room_in_chat = extract_json_obj.room;
+          let file_in_chat = extract_json_obj.data
           if (room_in_chat !== present_room_id) {
             console.log("mismatch room");
             console.log(`user is: ${u_name_in_chat} msg is: ${msg_in_chat}
             date is: ${date_in_chat} room is: ${room_in_chat} `);
             let message = mongoose.model(room_in_chat, ChatSchema);
-            let save_msg = new message({
-              username: u_name_in_chat,
-              msg: msg_in_chat,
-              date: date_in_chat,
-            });
-            save_msg.save((err, result) => {
-              if (err) throw err;
-              // console.log(result);
-              msg_room_2.push(result);
-              io.to(room_in_chat).emit("msg_room", result);
-            });
+            if(file_in_chat){
+              let save_msg = new message({
+                username: u_name_in_chat,
+                msg: msg_in_chat,
+                data:{data: new Buffer.from(file_in_chat.file).toString("base64"),
+                      name: file_in_chat.file_name,
+                      contentType: file_in_chat.content_type},
+                date: date_in_chat,
+              });
+              save_msg.save((err, result) => {
+                if (err) throw err;
+                msg_room_2.push(result);
+                io.to(room_in_chat).emit("msg_room", result);
+              });
+            }
+            else{
+              // if no data file
+              let save_msg = new message({
+                username: u_name_in_chat,
+                msg: msg_in_chat,
+                date: date_in_chat,
+              });
+              save_msg.save((err, result) => {
+                if (err) throw err;
+                msg_room_2.push(result);
+                io.to(room_in_chat).emit("msg_room", result);
+              });
+            }
           } else {
-            let save_msg = new message({
-              username: u_name_in_chat,
-              msg: msg_in_chat,
-              date: date_in_chat,
-            });
-            save_msg.save((err, result) => {
-              if (err) throw err;
-              // console.log(result);
-              msg_room_2.push(result);
-              io.to(present_room_id).emit("msg_room", result);
-            });
+            if(file_in_chat){
+              let save_msg = new message({
+                username: u_name_in_chat,
+                msg: msg_in_chat,
+                data:{data: new Buffer.from(file_in_chat.file).toString("base64"),
+                      name: file_in_chat.file_name,
+                      contentType: file_in_chat.content_type},
+                date: date_in_chat,
+              });
+              save_msg.save((err, result) => {
+                if (err) throw err;
+                msg_room_2.push(result);
+                io.to(present_room_id).emit("msg_room", result);
+              });
+            }
+            else{
+              let save_msg = new message({
+                username: u_name_in_chat,
+                msg: msg_in_chat,
+                date: date_in_chat,
+              });
+              save_msg.save((err, result) => {
+                if (err) throw err;
+                msg_room_2.push(result);
+                io.to(present_room_id).emit("msg_room", result);
+              });
+            }
           }
         }
       }

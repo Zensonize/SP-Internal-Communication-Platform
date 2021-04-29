@@ -6,7 +6,6 @@
 </template>
 <script>
 import Vue from "vue";
-import Navbar from "@/components/Navbar.vue";
 import VueChatScroll from "vue-chat-scroll";
 Vue.use(VueChatScroll);
 export default {};

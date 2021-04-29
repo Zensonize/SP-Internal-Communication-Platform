@@ -1,4 +1,5 @@
 const schema = {}
+
 var mongoose = require("mongoose");
 
 // User register schema
@@ -11,14 +12,18 @@ schema.user_register = mongoose.Schema({
 
 // Chat schema
 schema.chat_schema = mongoose.Schema({
-    username: String,
-    msg: String,
-    date: String,
-    room: String,
-    synced: [{type: String}],
-    FLAG: String,
-    owner: String
-  });
+  username: String,
+  msg: String,
+  date: String,
+  room: String,
+  // image: {filename: String}
+  data: { data: String,
+    name: String,
+  contentType: String},
+  synced: [{type: String}],
+  FLAG: String,
+  owner: String
+});
 
 // Room name Schema
 schema.Room_schema = mongoose.Schema({

@@ -1,4 +1,5 @@
 /* Part of Main CSS */
+
 @font-face {
     font-family: 'db_adman_xlight';
     src: url('~assets/fonts/db-adman-x-li-webfont.woff2') format('woff2'),
@@ -195,3 +196,7 @@ h2,
   color: #fff;
   background-color: #35495e;
 }
+a {
+  color: #00376f;
+}
+

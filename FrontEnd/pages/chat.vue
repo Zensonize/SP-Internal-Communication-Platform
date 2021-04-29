@@ -15,6 +15,10 @@ import io from "socket.io-client";
 import ChatRoom from "../components/ChatRoom";
 import Vue from "vue";
 import config from "@/store/config.js"
+import VueLazyload from 'vue-lazyload'
+
+Vue.use(VueLazyload)
+
 
 export default Vue.extend({
   name: "app",
@@ -33,10 +37,6 @@ export default Vue.extend({
       username: "",
       socket: io(config.host),
       messages: [],
-      messages2: [],
-      messages3: [],
-      messages4: [],
-      messages5: [],
       users: [],
       room: "",
       room_lists: [],
@@ -66,8 +66,11 @@ export default Vue.extend({
     },
     joinServer: function() {
       this.socket.on("loggedIn", data => {
-        console.log(data);
+        // console.log(`retrieve data from ${data}`);
         this.messages = data.messages;
+
+        // we already got image and path now we need to show to the our chatroom
+        // console.log(data.messages[1].image.path)
         this.users = data.users;
         this.room = data.room;
         this.socket.emit("newuser", this.username);
@@ -78,7 +81,7 @@ export default Vue.extend({
       this.socket.on("list_rooms", (payload) => {
         payload.map(({RoomID}) => RoomID).forEach((element) => {
           this.room_lists.push(element)
-            console.log(this.room_lists)
+            // console.log(this.room_lists)
         });
       })
       this.socket.on("userOnline", user => {
@@ -94,7 +97,7 @@ export default Vue.extend({
     },
     sendMessage: function(message) {
       this.socket.emit("msg", message, this.room, this.username);
-      console.log("App get", message);
+      // console.log("App get", message);
     }
   },
   mounted: function() {
