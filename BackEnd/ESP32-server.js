@@ -93,7 +93,12 @@ function READY(f_ready) {
         console.error("NO ROUTE for MSG", recentSend.H.ID, "TO", recentSend.DST)
 
         //set server status to offline
+        ALL_NODE[recentSend.DST].status = "OFFLINE"
+        ALL_SERVER[recentSend.DST].status = "OFFLINE"
 
+        console.log(helperFx.time_el(T_ST),"notice: server",recentSend.DST,ALL_SERVER[recentSend.DST].name,"went offline")
+
+        recentSend.ER_COUNT += 1
         //Retry this message
         TS_BUFF.push(recentSend)
     } else {
