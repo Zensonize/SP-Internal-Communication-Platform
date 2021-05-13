@@ -1,0 +1,79 @@
+{
+    "FLAG": {
+        "INIT": 0,
+        "READY": 1,
+        "CHANGE": 2,
+        "ECHO": 3,
+        "DATA": 4,
+        "ACK": 5
+    },
+    "INIT" : {
+        "F": "FLAG - 0",
+        "D": "NODE ID"
+    },
+    "READY": {
+        "F": "FLAG - 1",
+        "D": "result? TRUE - 1| FALSE - 0"
+    },
+    "CHANGE": {
+        "F": "FLAG - 2",
+        "D": {
+            "NL": "NODE LIST as String",
+            "TP": "Topology as JSON String"
+        }
+    },
+    "ECHO": {
+        "F": "FLAG - 3",
+        "H": {
+            "ID": "MSG_ID MAX 3 BYTE",
+            "DA": "DESTINATION A",
+            "DB": "DESTINATION B"
+        },
+        "D": "SERVER_NAME"
+    },
+    "DATA": {
+        "F": "FLAG - 4",
+        "H": {
+            "ID": "MSG_ID MAX 3 BYTE",
+            "FID": "FRAGEMNT ID MAX 4 BYTE",
+            "FL":"FRAGMENT LENGTH MAX 4 BYTE",
+            "AG":"Aggregation 1 BYTE",
+            "FR": "From",
+            "DA": "DESTINATION A",
+            "DB": "DESTINATION B"
+        },
+        "D":[""]
+    },
+    "ACK": {
+        "F" : "FLAG - 5",
+        "H":{
+            "ID": "MSG_ID MAX 3 BYTE",
+            "FID": "FRAGEMNT ID MAX 4 BYTE"
+        }
+    },
+    "QUEUE_DATA": {
+        "msg": {
+            "T_SEND": "Time sent",
+            "to": "phys address of destination",
+            "id": "id of records in mongo db",
+            "FFLAG": "frontend flag for each message",
+            "AGGED": "list of MSG ID aggregated",
+            "errCount": "no.of time error occured",
+            "PHYS_LEN": "length of this message at physical",
+            "msg": {
+                "F": "FLAG - D",
+                "H": {
+                    "ID": "MSG_ID MAX 3 BYTE",
+                    "FID": "FRAGEMNT ID MAX 4 BYTE",
+                    "FL":"FRAGMENT LENGTH MAX 4 BYTE",
+                    "AG":"Aggregation 1 BYTE",
+                    "DA": "DESTINATION A",
+                    "DB": "DESTINATION B"
+                },
+                "D":[""]
+            }
+        }
+        
+    }
+}
+

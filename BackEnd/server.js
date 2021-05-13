@@ -678,7 +678,7 @@ function echoServer(dest) {
 
 function nextMSG_ID() {
   //a function to prevent MSG_ID to go over MAX_INT
-  if (MSG_ID == 10000) {
+  if (MSG_ID == 999) {
     MSG_ID = 0;
     return MSG_ID;
   } else {

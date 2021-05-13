@@ -34,7 +34,7 @@ const socket = io("http://192.168.5.1:3000/", {
 const timer = ms => new Promise(res => setTimeout(res, ms))
 
 async function load () { // We need to wrap the loop into an async function for this to work
-  for (var i = 0; i < 1000 ; i++) {
+  for (var i = 0; i < 50 ; i++) {
     console.log(i);
     socket.emit("msg",msg[i],room,u_name[i])
     await timer(500); // then the created Promise can be awaited
