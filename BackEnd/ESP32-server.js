@@ -204,6 +204,11 @@ function DATA(f_data) {
 }
 
 function CHANGE(f_change) {
+    if (!SERIAL_ONLINE) {
+        SERIAL_ONLINE = true
+        console.log(helperFx.time_el(T_ST),"SERIAL is online")
+    }
+
     NODE_LIST = f_change.D.NL.split(",");
     NODE_LIST.splice(NODE_LIST.indexOf(SELF_ID),1)
 
@@ -245,6 +250,10 @@ function CHANGE(f_change) {
                     } catch (err) {
                         console.log(helperFx.time_el(T_ST),"error,",err.name, err.message,",when calculating network hop for node", key, "TOPOLOGY", TOPOLOGY);
                         ALL_NODE[key].hop = "ERROR"
+                    }
+
+                    if (TO_SEND_BUFF.length) {
+                        setSerialRoutine();
                     }
                 }
             }
