@@ -1,5 +1,3 @@
-var app = require("express")();
-var schema = require("./db/schema");
 var config = require("./config");
 var helperFx = require("./helper")
 
@@ -19,7 +17,7 @@ parser.on("data", (data) => {
     serialHandler(dataJSON);
   } catch (err) {
     if (data.search("CONNECTION") != -1) {
-        console.log(helperFx.time_el(T_ST),data)
+        // console.log(helperFx.time_el(T_ST),data)
     }
     else {
         console.error("not parseable", data, err.name, err.message);
@@ -27,7 +25,7 @@ parser.on("data", (data) => {
   }
 });
 
-helperFx.test();
+// helperFx.test();
 let SERIAL_ONLINE = false;
 let T_ST = Date.now()
 
@@ -432,6 +430,7 @@ function sendSingle(dataStr, dest, _id, FFLAG) {
 }
 
 function sendData(data, dest, _id) {
+  console.log("data:", data, "to:", dest, "id",_id)
     dataStr = JSON.stringify(data)
 
     if (dataStr.length > config.NONFRAGMTU) {
@@ -666,79 +665,111 @@ function echoServer(dest) {
 }
 
 function handleFrontendFrame(data) {
-    extract_json_obj = JSON.parse(data);
+  console.log(data)
+  extract_json_obj = JSON.parse(data);
 
-    if (extract_json_obj.FLAG === "msg") {
-          
-        let message = mongoose.model(present_room_id, ChatSchema);
-        let u_name_in_chat = extract_json_obj.username;
-        let msg_in_chat = extract_json_obj.msg;
-        let date_in_chat = extract_json_obj.date;
-        let room_in_chat = extract_json_obj.room;
-        let file_in_chat = extract_json_obj.data
-        if (room_in_chat !== present_room_id) {
-          console.log(helperFx.time_el(T_ST),"mismatch room");
-          console.log(helperFx.time_el(T_ST),`user is: ${u_name_in_chat} msg is: ${msg_in_chat}
-          date is: ${date_in_chat} room is: ${room_in_chat} `);
-          let message = mongoose.model(room_in_chat, ChatSchema);
-          if(file_in_chat){
-            let save_msg = new message({
-              username: u_name_in_chat,
-              msg: msg_in_chat,
-              data:{data: new Buffer.from(file_in_chat.file).toString("base64"),
-                    name: file_in_chat.file_name,
-                    contentType: file_in_chat.content_type},
-              date: date_in_chat,
-            });
-            save_msg.save((err, result) => {
-              if (err) throw err;
-              msg_room_2.push(result);
-              io.to(room_in_chat).emit("msg_room", result);
-            });
-          }
-          else{
-            // if no data file
-            let save_msg = new message({
-              username: u_name_in_chat,
-              msg: msg_in_chat,
-              date: date_in_chat,
-            });
-            save_msg.save((err, result) => {
-              if (err) throw err;
-              msg_room_2.push(result);
-              io.to(room_in_chat).emit("msg_room", result);
-            });
-          }
-        } else {
-          if(file_in_chat){
-            let save_msg = new message({
-              username: u_name_in_chat,
-              msg: msg_in_chat,
-              data:{data: new Buffer.from(file_in_chat.file).toString("base64"),
-                    name: file_in_chat.file_name,
-                    contentType: file_in_chat.content_type},
-              date: date_in_chat,
-            });
-            save_msg.save((err, result) => {
-              if (err) throw err;
-              msg_room_2.push(result);
-              io.to(present_room_id).emit("msg_room", result);
-            });
-          }
-          else{
-            let save_msg = new message({
-              username: u_name_in_chat,
-              msg: msg_in_chat,
-              date: date_in_chat,
-            });
-            save_msg.save((err, result) => {
-              if (err) throw err;
-              msg_room_2.push(result);
-              io.to(present_room_id).emit("msg_room", result);
-            });
-          }
+
+  if (extract_json_obj.FLAG === "msg"){
+        
+      let message = mongoose.model(present_room_id, ChatSchema);
+      let u_name_in_chat = extract_json_obj.username;
+      let msg_in_chat = extract_json_obj.msg;
+      let date_in_chat = extract_json_obj.date;
+      let room_in_chat = extract_json_obj.room;
+      let file_in_chat = extract_json_obj.data
+      if (room_in_chat !== present_room_id) {
+        console.log(helperFx.time_el(T_ST),"mismatch room");
+        console.log(helperFx.time_el(T_ST),`user is: ${u_name_in_chat} msg is: ${msg_in_chat}
+        date is: ${date_in_chat} room is: ${room_in_chat} `);
+        let message = mongoose.model(room_in_chat, ChatSchema);
+        if(file_in_chat){
+          let save_msg = new message({
+            username: u_name_in_chat,
+            msg: msg_in_chat,
+            data:{data: new Buffer.from(file_in_chat.file).toString("base64"),
+                  name: file_in_chat.file_name,
+                  contentType: file_in_chat.content_type},
+            date: date_in_chat,
+          });
+          save_msg.save((err, result) => {
+            if (err) throw err;
+            msg_room_2.push(result);
+            io.to(room_in_chat).emit("msg_room", result);
+          });
         }
-    }
+        else{
+          // if no data file
+          let save_msg = new message({
+            username: u_name_in_chat,
+            msg: msg_in_chat,
+            date: date_in_chat,
+          });
+          save_msg.save((err, result) => {
+            if (err) throw err;
+            msg_room_2.push(result);
+            io.to(room_in_chat).emit("msg_room", result);
+          });
+        }
+      } else {
+        if(file_in_chat){
+          let save_msg = new message({
+            username: u_name_in_chat,
+            msg: msg_in_chat,
+            data:{data: new Buffer.from(file_in_chat.file).toString("base64"),
+                  name: file_in_chat.file_name,
+                  contentType: file_in_chat.content_type},
+            date: date_in_chat,
+          });
+          save_msg.save((err, result) => {
+            if (err) throw err;
+            msg_room_2.push(result);
+            io.to(present_room_id).emit("msg_room", result);
+          });
+        }
+        else{
+          let save_msg = new message({
+            username: u_name_in_chat,
+            msg: msg_in_chat,
+            date: date_in_chat,
+          });
+          save_msg.save((err, result) => {
+            if (err) throw err;
+            msg_room_2.push(result);
+            io.to(present_room_id).emit("msg_room", result);
+          });
+        }
+      }
+  }
+  if (extract_json_obj.FLAG === "room"){
+    let data_in_create_room = extract_json_obj.msg
+        let new_room = mongoose.model(data_in_create_room, ChatSchema);
+        let data_room = new new_room({
+          username: "Admin",
+          msg: `Welcome to ${data_in_create_room}`,
+          date: new moment().format("DD/MM/YYYY HH:mm:ss"),
+        });
+        let room = new room_list({
+          RoomID: data_in_create_room,
+        });
+        room.save(data_in_create_room);
+        data_room.save((err, result) => {
+          if (err) throw err;
+          console.log(result);
+        });
+  }
+  if (extract_json_obj.FLAG === "user"){
+    let username_in_create_room = extract_json_obj.registername
+        let password_in_create_room = extract_json_obj.password
+        let Data = new userDataModel({
+          registername: username_in_create_room,
+          password: password_in_create_room,
+        });
+        console.log(`Register Sucessfully!`);
+        Data.save((err, result) => {
+          if (err) throw err;
+          console.log(result)
+        });
+  }
 }
 
 function msgTimeout() {
