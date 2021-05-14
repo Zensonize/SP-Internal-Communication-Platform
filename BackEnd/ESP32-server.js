@@ -645,8 +645,8 @@ function echoServer(dest) {
         DST: dest,
         PHYS_LEN: 0,
         msg: {
-            F: 3,
             H: {
+                F: 3,
                 ID: nextMSG_ID(),
                 FID: 0,
                 FL: 0,
