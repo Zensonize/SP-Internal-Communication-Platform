@@ -7,6 +7,8 @@ const { BURST } = require("./config");
 const PORT = new SerialPort(config.SERIAL_PORT, { baudRate: config.BUADRATE });
 const parser = PORT.pipe(new ReadLine({ delimiter: "\n" }));
 
+
+
 PORT.on("open", () => {
   console.info("serial port open");
 });
@@ -157,7 +159,7 @@ function ECHO(f_echo) {
 
         console.log(helperFx.time_el(T_ST),"added new server", ALL_SERVER[f_echo.H.FR].name);
 
-        ALL_SERVER[f_echo.H.FR].hop = calcHop(f_echo.H.FR,TOPOLOGY);
+        ALL_SERVER[f_echo.H.FR].hop = helperFx.calcHop(f_echo.H.FR,TOPOLOGY);
         ALL_NODE[f_echo.H.FR].hop = ALL_SERVER[f_echo.H.FR].hop
         RECV_BUFF[f_echo.H.FR] = {};
 
@@ -176,6 +178,7 @@ function ECHO(f_echo) {
 }
 
 function DATA(f_data) {
+    console.log("file Data:", f_data.D[0]);
     if (f_data.H.FID == -1) {
         console.log(helperFx.time_el(T_ST),"RECEIVED", f_data.H.ID)
 
@@ -185,18 +188,22 @@ function DATA(f_data) {
     } else {
         if (f_data.H.ID in RECV_BUFF[f_data.H.FR]) {
             RECV_BUFF[f_data.H.FR][f_data.H.ID].push(f_data);
-            
+            console.log("recv data:", RECV_BUFF[f_data.H.FR][f_data.H.ID])
             if (RECV_BUFF[f_data.H.FR][f_data.H.ID].length == f_data.H.FL) {
+              console.log("true")
                 dataFull = "";
                 for (index = 0; index < f_data.H.FL; index++) {
                   for (let [i, frag] of RECV_BUFF[f_data.H.FR][f_data.H.ID].entries()) {
                     if (frag.H.FID == index) {
+                      console.log("get data")
                         
-                      dataFull += frag.D;
+                      dataFull.concat(frag.D[0]);
+                      
                       break;
                     }
                   }
-                }
+                }          
+                console.log("data from dataFull:", dataFull)   
                 handleFrontendFrame(dataFull)
                 console.log(helperFx.time_el(T_ST),"RECEIVED-FRAG", f_data.H.ID)
                 delete RECV_BUFF[f_data.H.FR][f_data.H.ID]
@@ -331,11 +338,15 @@ function CHANGE(f_change) {
         }
         echoServer(item);
     })
+
+    console.log(ALL_NODE, ALL_SERVER)
 }
 
 function ACK(f_ack) {
     let ACK_RE_TIME = Date.now();
     found = false;
+    console.log("ALL SERVER:", ALL_SERVER, "ALL NODE:",ALL_NODE)
+            
     for (let [i,msg] of S_BUFF.entries()) {
         //for non fragmented messages
         if (f_ack.H.ID == msg.msg.H.ID && f_ack.H.FID == -1) {
@@ -352,6 +363,7 @@ function ACK(f_ack) {
 
         else if (f_ack.H.ID == msg.msg.H.ID && f_ack.H.FID == msg.msg.H.FID) {
             console.log(helperFx.time_el(T_ST), "ACK", f_ack.H, "DST", msg.DST, "RTT", ACK_RE_TIME-msg.T_SEND)
+            console.log("ALL SERVER:", ALL_SERVER, "ALL NODE:",ALL_NODE)
             S_BUFF[i].ACKED == true;
 
             //check if all of the fragmented message was acked
@@ -393,7 +405,7 @@ function ACK(f_ack) {
 
 function sendFragment(dataStr, dest, _id, FFLAG) {
     dataFrag = helperFx.chunkSubstr(dataStr, config.FRAGMTU)
-
+    
     msg = {
         T_SEND: 0,
         ER_COUNT: 0,
@@ -417,6 +429,7 @@ function sendFragment(dataStr, dest, _id, FFLAG) {
     }
 
     for (let [i, frag] of dataFrag.entries()) {
+        console.log("type of frag", typeof(frag), frag )
         msg.msg.D = frag,
         msg.msg.H.FID = msg.msg.H.FID++;
 
@@ -445,7 +458,7 @@ function sendSingle(dataStr, dest, _id, FFLAG) {
                 DA: helperFx.convertDstAddr(dest)[0],
                 DB: helperFx.convertDstAddr(dest)[1]
             },
-            D: dataStr
+            D: [dataStr]
         }
     }
     msg.AGGED.push(msg.msg.H.ID)
@@ -455,20 +468,26 @@ function sendSingle(dataStr, dest, _id, FFLAG) {
 }
 
 function sendData(data, dest, _id) {
-  console.log("data:", data, "to:", dest, "id",_id)
+  // console.log("data:", data, "to:", dest, "id",_id)
     dataStr = JSON.stringify(data)
-
+    // console.log(dataStr.length, config.NONFRAGMTU)
     if (dataStr.length > config.NONFRAGMTU) {
+      console.log("data > FRAG")
         if (dest === "ALL") {
             for (var server in ALL_SERVER) {
+              console.log("send data from if cond and get server:",server, ALL_SERVER)
                 console.log(helperFx.time_el(T_ST),"will send to", server);
                 sendFragment(dataStr, server, _id, data.FLAG);
             }
         } else {
+          console.log("send data from else cond")
             sendFragment(dataStr, dest, _id, data.FLAG);
         }
     } else {
         if (dest === "ALL") {
+          console.log("data < FRAG")
+          console.log(ALL_SERVER)
+          console.log(`will send to, ${server}, ${ALL_SERVER[server]}`)
           for (var server in ALL_SERVER) {
             console.log(helperFx.time_el(T_ST),"will send to", server, ALL_SERVER[server]);
             sendSingle(dataStr, server, _id, data.FLAG);
@@ -495,10 +514,16 @@ function setSerialRoutine() {
 function sendToSerial() {
     let msgToSend = null;
     if (TS_BUFF.length) {
-        msgToSend = pickNextMSG()
 
+        msgToSend = pickNextMSG()
+        try{
+          pickNextMSG()
+        }
+        catch(err){
+          console.error(err)
+        }
         if (msgToSend != null) {
-            console.log(helperFx.time_el(T_ST),"sending", msgToSend.msg.H.F, "ID:", msgToSend.msg.H.ID)
+            console.log(helperFx.time_el(T_ST),"sending", msgToSend.msg.F, "ID:", msgToSend.msg.H.ID)
 
             PORT.write(JSON.stringify(msgToSend.msg))
             msgToSend.T_SEND = Date.now();
@@ -518,7 +543,7 @@ function sendToSerial() {
 }
 
 function serialHandler(data){
-    // console.log("incoming data:", data, PHYS_LEN)
+    console.log("incoming data:", data)
     switch(data.F){
         case 0: INIT(data); break;
         case 1: READY(data); break;
@@ -536,20 +561,23 @@ function pickNextMSG() {
     while (true) {
         shiftCount += 1
         let selectedMsg = JSON.parse(JSON.stringify(TS_BUFF[0]))
-
+        console.log("selected MSG:",selectedMsg)
         try {
-            if (selectedMsg.msg.H.F == 3 && ALL_NODE[selectedMsg.DST].status === "ONLINE") {
+            if (selectedMsg.msg.F == 3 && ALL_NODE[selectedMsg.DST].status === "ONLINE") {
                 pickedMsg = selectedMsg
+                console.log("from if cond:", pickedMsg)
                 TS_BUFF.splice(0,1)
                 return pickedMsg
             } else if (ALL_NODE[selectedMsg.DST].status === "ONLINE") {
                 pickedMsg = selectedMsg
+                console.log("from else if cond:", pickedMsg)
                 TS_BUFF.splice(0,1);
                 if (selectedMsg.msg.H.FID != -1 || selectedMsg.msg.H.AG != 1){
                     return pickedMsg
                 }
                 break;
             } else {
+                console.log("from else cond:", pickedMsg)
                 TS_BUFF.push(selectedMsg);
                 TS_BUFF.splice(0,1);
                 if (shiftCount == TS_BUFF.length) {
@@ -574,7 +602,7 @@ function pickNextMSG() {
         nextCandidate = null
         
         for (i in TS_BUFF) {
-            if (TS_BUFF[i].msg.H.F != 3 && TS_BUFF[i].DST == pickedMsg.DST && TS_BUFF[i].msg.H.FID == -1 && TS_BUFF[i].msg.H.AG == 1) {
+            if (TS_BUFF[i].msg.F != 3 && TS_BUFF[i].DST == pickedMsg.DST && TS_BUFF[i].msg.H.FID == -1 && TS_BUFF[i].msg.H.AG == 1) {
                 nextCandidate = i
                 console.log(helperFx.time_el(T_ST), "trying to agg", TS_BUFF[nextCandidate].msg.H.ID, "to", pickedMsg.msg.H.ID, "ori len", totalMsgLen)
                 break
@@ -592,10 +620,10 @@ function pickNextMSG() {
             pickedMsg.msg.H.AG += 1
 
             pickedMsg.AGGED.push(TS_BUFF[nextCandidate].msg.H.ID)
-            pickedMsg.msg.D.push(TS_BUFF[nextCandidate].msg.H.D[0])
+            pickedMsg.msg.D.push(TS_BUFF[nextCandidate].msg.D[0])
             pickedMsg.FFLAG.push(TS_BUFF[nextCandidate].FFLAG[0])
 
-            totalMsgLen += (nextCandidate.msg.H.D[0].length + 3)
+            totalMsgLen += (TS_BUFF[nextCandidate].msg.D[0].length + 3)
             console.log(helperFx.time_el(T_ST), "agged", TS_BUFF[nextCandidate].msg.H.ID, "to", pickedMsg.msg.H.ID, "new data length", totalMsgLen , totalMsgLen/config.NONFRAGMTU * 100)
             
             pickedMsg.PHYS_LEN = JSON.stringify(pickedMsg.msg).length
@@ -603,7 +631,7 @@ function pickNextMSG() {
         }
     }
 
-    console.lop("agg final phys len", pickedMsg.PHYS_LEN, "AGGED", pickedMsg.AGGED)
+    console.log("agg final phys len", pickedMsg.PHYS_LEN, "AGGED", pickedMsg.AGGED)
     return pickedMsg
 }
 
@@ -669,8 +697,8 @@ function echoServer(dest) {
         DST: dest,
         PHYS_LEN: 0,
         msg: {
+            F: 3,
             H: {
-                F: 3,
                 ID: nextMSG_ID(),
                 FID: 0,
                 FL: 0,
@@ -690,8 +718,12 @@ function echoServer(dest) {
 }
 
 function handleFrontendFrame(data) {
-  console.log(data)
-  extract_json_obj = JSON.parse(data);
+  // console.log(data)
+  try {
+    extract_json_obj = JSON.parse(data);
+  } catch (error) {
+    console.error("parsing Data error:",error, data)
+  }
 
 
   if (extract_json_obj.FLAG === "msg"){
@@ -805,7 +837,7 @@ function msgTimeout() {
         toSplice = []
 
         for (let [i,msg] of S_BUFF.entries()) {
-            if (msg.msg.H.F === 3) {
+            if (msg.msg.F === 3) {
                 toSplice.push(i)
             } else if (Date.now() - msg.T_SEND >= config.TIMEOUT[ALL_NODE[msg.DST].hop]) {
                 currentTime = Date.now()
