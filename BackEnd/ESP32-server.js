@@ -509,7 +509,7 @@ function pickNextMSG() {
                 pickedMsg = selectedMsg
                 TS_BUFF.splice(0,1)
                 return pickedMsg
-            } else if (ALL_SERVER[selectedMsg.DST].status === "ONLINE") {
+            } else if (ALL_NODE[selectedMsg.DST].status === "ONLINE") {
                 pickedMsg = selectedMsg
                 TS_BUFF.splice(0,1);
                 if (selectedMsg.msg.H.FID != -1 || selectedMsg.msg.H.AG != 1){
