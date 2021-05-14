@@ -740,3 +740,32 @@ function handleFrontendFrame(data) {
         }
     }
 }
+
+function msgTimeout() {
+    if (!S_BUFF) {
+        clearInterval(timedoutRoutine)
+        timedoutRoutine = null
+    } else {
+        toSplice = []
+
+        for (let [i,msg] of S_BUFF.entries()) {
+            if (msg.msg.H.F === 3) {
+                toSplice.push(i)
+            } else if (Date.now() - msg.T_SEND >= config.TIMEOUT[ALL_NODE[msg.DST].hop]) {
+                currentTime = Date.now()
+                var timedoutMsg = msg;
+                
+                timedoutMsg.ER_COUNT += 1
+
+                console.log(helperFx.time_el(T_ST), "TIMEDOUT", timedoutMsg.msg.H.ID, "at", (currentTime - msg.T_SEND) / 1000,"sec")
+                toSplice.push(i)
+                TS_BUFF.push(timedoutMsg)
+                setSerialRoutine();
+            }
+        }
+
+        toSplice.forEach((item, index) => {
+            S_BUFF.splice(item,1)
+          })
+    }
+}
