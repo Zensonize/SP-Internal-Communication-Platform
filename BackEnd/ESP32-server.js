@@ -32,7 +32,7 @@ let SERIAL_ONLINE = false;
 let T_ST = Date.now()
 
 let BLT = config.BURST;
-let MSG_D = 0;
+let MSG_ID = 0;
 let SELF_ID = config.SELF_ID;
 console.log(helperFx.time_el(T_ST),"INIT from config", SELF_ID);
 
