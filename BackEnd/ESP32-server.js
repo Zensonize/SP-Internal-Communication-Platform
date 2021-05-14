@@ -66,7 +66,11 @@ function initNodeList() {
             hop: -1,
           };
         });
-    
+        
+        for (let [i, node] of ALL_NODE) {
+            echoServer(node)
+        }
+        
         console.log(helperFx.time_el(T_ST),"NODE LIST", NODE_LIST);
         console.log(helperFx.time_el(T_ST),"ALL NODE", ALL_NODE);
       });
