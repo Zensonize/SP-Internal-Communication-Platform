@@ -403,7 +403,7 @@ function sendFragment(dataStr, dest, _id, FFLAG) {
     }
 }
 
-function sendSingle(dataStr, dest, _id, FLAG) {
+function sendSingle(dataStr, dest, _id, FFLAG) {
     msg = {
         T_SEND: 0,
         ER_COUNT: 0,
