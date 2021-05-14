@@ -347,7 +347,7 @@ function ACK(f_ack) {
 
             if (ackedCount == msg.msg.H.FL) {
                 toSplice = []
-                for (let [j, m] of SENT_BUFF.entries()) {
+                for (let [j, m] of S_BUFF.entries()) {
                     if (f_ack.H.ID == m.msg.H.ID) {
                       toSplice.push(j)
                     }
@@ -478,7 +478,7 @@ function sendToSerial() {
 
             PORT.write(JSON.stringify(msgToSend.msg))
             msgToSend.T_SEND = Date.now();
-            SENT_BUFF.push(msgToSend);
+            S_BUFF.push(msgToSend);
 
             if (timedoutRoutine == null) {
                 timedoutRoutine = setInterval(msgTimeout, 500);
