@@ -236,7 +236,7 @@ function CHANGE(f_change) {
                     }
 
                     //start sending message again
-                    if (TO_SEND_BUFF.length) {
+                    if (TS_BUFF.length) {
                         setSerialRoutine();
                     }
                 } else {
@@ -252,7 +252,7 @@ function CHANGE(f_change) {
                         ALL_NODE[key].hop = "ERROR"
                     }
 
-                    if (TO_SEND_BUFF.length) {
+                    if (TS_BUFF.length) {
                         setSerialRoutine();
                     }
                 }
