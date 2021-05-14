@@ -97,7 +97,11 @@ function READY(f_ready) {
         //set server status to offline
         ALL_NODE[recentSend.DST].status = "OFFLINE"
         ALL_SERVER[recentSend.DST].status = "OFFLINE"
-
+        io.to(present_room_id).emit("msg_room", {
+          msg: `"notice: server",${recentSend.DST},${ALL_SERVER[recentSend.DST].name} went offline`,
+          date: new moment().format("DD/MM/YYYY HH:mm:ss"),
+          room: present_room_id,
+        });
         console.log(helperFx.time_el(T_ST),"notice: server",recentSend.DST,ALL_SERVER[recentSend.DST].name,"went offline")
 
         recentSend.ER_COUNT += 1
@@ -123,6 +127,11 @@ function ECHO(f_echo) {
             ALL_NODE[f_echo.H.FR].status = "ONLINE";
 
             console.log(helperFx.time_el(T_ST),"Server", ALL_SERVER[f_echo.H.FR].name, "back online")
+            io.to(present_room_id).emit("msg_room", {
+              msg: `"notice: server"${ALL_SERVER[recentSend.DST].name} back online`,
+              date: new moment().format("DD/MM/YYYY HH:mm:ss"),
+              room: present_room_id,
+            });
             ALL_SERVER[f_echo.H.FR].hop = helperFx.calcHop(f_echo.H.FR, TOPOLOGY)
             ALL_NODE[f_echo.H.FR].hop = ALL_SERVER[f_echo.H.FR].hop
         }
@@ -220,7 +229,11 @@ function CHANGE(f_change) {
                     ALL_SERVER[key.status] = "ONLINE";
                     ALL_NODE[key].status = "ONLINE";
                     console.log(helperFx.time_el(T_ST),"notice: server", key, ALL_SERVER[key].name, "back online");
-
+                    io.to(present_room_id).emit("msg_room", {
+                      msg: `"notice: server",${key},${ALL_SERVER[recentSend.DST].name} back online`,
+                      date: new moment().format("DD/MM/YYYY HH:mm:ss"),
+                      room: present_room_id,
+                    });
                     //recalculate network hop
                     try {
                         ALL_SERVER[key].hop = helperFx.calcHop(key,TOPOLOGY);
@@ -240,7 +253,11 @@ function CHANGE(f_change) {
                 } else {
                     ALL_NODE[key].status = "ONLINE";
                     console.log(helperFx.time_el(T_ST),"notice: node", key, "back online");
-
+                    io.to(present_room_id).emit("msg_room", {
+                      msg: `"notice: server",${key} back online`,
+                      date: new moment().format("DD/MM/YYYY HH:mm:ss"),
+                      room: present_room_id,
+                    });
                     //recalculate network hop
                     try {
                         ALL_NODE[key].hop = helperFx.calcHop(key,TOPOLOGY);
@@ -264,14 +281,22 @@ function CHANGE(f_change) {
                     ALL_SERVER[key].status = "OFFLINE"
                     
                     console.log(helperFx.time_el(T_ST),"notice: server",key,ALL_SERVER[key].name,"went offline")
-                    
+                    io.to(present_room_id).emit("msg_room", {
+                      msg: `"notice: server",${key},${ALL_SERVER[key].name} went offline`,
+                      date: new moment().format("DD/MM/YYYY HH:mm:ss"),
+                      room: present_room_id,
+                    });
                     ALL_SERVER[key].hop = -1
                     ALL_NODE[key].hop = -1
                     ALL_SERVER[key].path = ""
                     ALL_NODE[key].path = ""
                 } else {
                     ALL_NODE[key].status = "OFFLINE"
-
+                    io.to(present_room_id).emit("msg_room", {
+                      msg: `"notice: server",${key} went offline`,
+                      date: new moment().format("DD/MM/YYYY HH:mm:ss"),
+                      room: present_room_id,
+                    });
                     console.log(helperFx.time_el(T_ST),"notice: node", key, "went offline")
 
                     ALL_NODE[key].hop = -1
