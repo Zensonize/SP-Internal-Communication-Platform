@@ -71,8 +71,8 @@ function initNodeList() {
             echoServer(node)
         }
 
-        console.log(helperFx.time_el(T_ST),"NODE LIST", NODE_LIST);
-        console.log(helperFx.time_el(T_ST),"ALL NODE", ALL_NODE);
+        console.log(helperFx.time_el(T_ST),"NODE LIST from INIT", NODE_LIST);
+        console.log(helperFx.time_el(T_ST),"ALL NODE from INIT", ALL_NODE);
       });
 }
 
@@ -187,31 +187,32 @@ function DATA(f_data) {
         }
     } else {
         if (f_data.H.ID in RECV_BUFF[f_data.H.FR]) {
-            RECV_BUFF[f_data.H.FR][f_data.H.ID].push(f_data);
-            console.log("recv data:", RECV_BUFF[f_data.H.FR][f_data.H.ID])
+            RECV_BUFF[f_data.H.FR][f_data.H.ID][f_data.H.FID] = f_data
+
+            console.log("recv fragmented data:", f_data.H)
+
             if (RECV_BUFF[f_data.H.FR][f_data.H.ID].length == f_data.H.FL) {
-              console.log("true")
-                dataFull = "";
-                for (index = 0; index < f_data.H.FL; index++) {
-                  for (let [i, frag] of RECV_BUFF[f_data.H.FR][f_data.H.ID].entries()) {
-                    if (frag.H.FID == index) {
-                      console.log("get data")
-                        
-                      dataFull.concat(frag.D[0]);
-                      
-                      break;
+                console.log(helperFx.time_el(T_ST), "All fragmented message of ", f_data.H.ID, "received")
+                
+                try {
+                    dataFull = "";
+                    for (index = 0; index < f_data.H.FL; index++) {
+                        dataFull.concat(RECV_BUFF[f_data.H.FR][f_data.H.ID][index].D)
                     }
-                  }
-                }          
-                console.log("data from dataFull:", dataFull)   
-                handleFrontendFrame(dataFull)
+                    console.log("data from dataFull:", dataFull)
+                } catch (err) {
+                    console.log("ERRPR when trying to reconstruct fragemnted message", err)
+                }
+                
                 console.log(helperFx.time_el(T_ST),"RECEIVED-FRAG", f_data.H.ID)
+
+                handleFrontendFrame(dataFull)
                 delete RECV_BUFF[f_data.H.FR][f_data.H.ID]
             }
 
           } else {
-            RECV_BUFF[f_data.H.FR][f_data.H.ID] = [];
-            RECV_BUFF[f_data.H.FR][f_data.H.ID].push(f_data)
+            RECV_BUFF[f_data.H.FR][f_data.H.ID] = {};
+            RECV_BUFF[f_data.H.FR][f_data.H.ID][f_data.H.FID] = f_data
           }
     }
 
@@ -418,7 +419,7 @@ function sendFragment(dataStr, dest, _id, FFLAG) {
             F: 4,
             H: {
                 ID: nextMSG_ID(),
-                FID: 0,
+                FID: -1,
                 FL: dataFrag.length,
                 AG: 1,
                 DA: helperFx.convertDstAddr(dest)[0],
@@ -472,26 +473,26 @@ function sendData(data, dest, _id) {
     dataStr = JSON.stringify(data)
     // console.log(dataStr.length, config.NONFRAGMTU)
     if (dataStr.length > config.NONFRAGMTU) {
-      console.log("data > FRAG")
+        console.log("data > FRAG")
         if (dest === "ALL") {
             for (var server in ALL_SERVER) {
-              console.log("send data from if cond and get server:",server, ALL_SERVER)
+                console.log("send data to ALL server:",server, ALL_SERVER)
                 console.log(helperFx.time_el(T_ST),"will send to", server);
                 sendFragment(dataStr, server, _id, data.FLAG);
             }
         } else {
-          console.log("send data from else cond")
+            console.log("send data to specific server")
             sendFragment(dataStr, dest, _id, data.FLAG);
         }
     } else {
         if (dest === "ALL") {
-          console.log("data < FRAG")
-          console.log(ALL_SERVER)
-          console.log(`will send to, ${server}, ${ALL_SERVER[server]}`)
-          for (var server in ALL_SERVER) {
-            console.log(helperFx.time_el(T_ST),"will send to", server, ALL_SERVER[server]);
-            sendSingle(dataStr, server, _id, data.FLAG);
-          }
+            console.log("data < FRAG")
+            console.log(ALL_SERVER)
+            console.log(`will send to, ${server}, ${ALL_SERVER[server]}`)
+            for (var server in ALL_SERVER) {
+                console.log(helperFx.time_el(T_ST),"will send to", server, ALL_SERVER[server]);
+                sendSingle(dataStr, server, _id, data.FLAG);
+            }
         } else {
           sendSingle(dataStr, dest, _id, data.FLAG);
         }
