@@ -430,9 +430,9 @@ function sendFragment(dataStr, dest, _id, FFLAG) {
     }
 
     for (let [i, frag] of dataFrag.entries()) {
-        console.log("type of frag", typeof(frag), frag )
+        // console.log("type of frag", typeof(frag), frag )
         msg.msg.D = frag,
-        msg.msg.H.FID = msg.msg.H.FID++;
+        msg.msg.H.FID += 1;
 
         msg.PHYS_LEN = JSON.stringify(msg.msg).length
         TS_BUFF.push(msg)
@@ -561,8 +561,8 @@ function pickNextMSG() {
 
     while (true) {
         shiftCount += 1
-        let selectedMsg = JSON.parse(JSON.stringify(TS_BUFF[0]))
-        console.log("selected MSG:",selectedMsg)
+        let selectedMsg = TS_BUFF[0]
+        console.log("selected MSG:",TS_BUFF[0])
         try {
             if (selectedMsg.msg.F == 3 && ALL_NODE[selectedMsg.DST].status === "ONLINE") {
                 pickedMsg = selectedMsg
@@ -722,6 +722,7 @@ function handleFrontendFrame(data) {
   // console.log(data)
   try {
     extract_json_obj = JSON.parse(data);
+    console.log("Data from Json Obj:",JSON.parse(data))
   } catch (error) {
     console.error("parsing Data error:",error, data)
   }
@@ -735,18 +736,22 @@ function handleFrontendFrame(data) {
       let date_in_chat = extract_json_obj.date;
       let room_in_chat = extract_json_obj.room;
       let file_in_chat = extract_json_obj.data
+      console.log("File in chat:",file_in_chat)
       if (room_in_chat !== present_room_id) {
+        console.log("Room name:",room_in_chat)
         console.log(helperFx.time_el(T_ST),"mismatch room");
         console.log(helperFx.time_el(T_ST),`user is: ${u_name_in_chat} msg is: ${msg_in_chat}
         date is: ${date_in_chat} room is: ${room_in_chat} `);
         let message = mongoose.model(room_in_chat, ChatSchema);
         if(file_in_chat){
+          console.log("incomming msg have file upload and mismatch room")
           let save_msg = new message({
             username: u_name_in_chat,
             msg: msg_in_chat,
-            data:{data: new Buffer.from(file_in_chat.file).toString("base64"),
-                  name: file_in_chat.file_name,
-                  contentType: file_in_chat.content_type},
+            data:{data: new Buffer.from(file_in_chat.data).toString("base64"),
+                  name: file_in_chat.name,
+                  contentType: file_in_chat.contentType},
+            room: room_in_chat,
             date: date_in_chat,
           });
           save_msg.save((err, result) => {
@@ -757,10 +762,12 @@ function handleFrontendFrame(data) {
         }
         else{
           // if no data file
+          console.log("incomming msg no file upload and mismatch room")
           let save_msg = new message({
             username: u_name_in_chat,
             msg: msg_in_chat,
             date: date_in_chat,
+            room: room_in_chat,
           });
           save_msg.save((err, result) => {
             if (err) throw err;
@@ -768,14 +775,18 @@ function handleFrontendFrame(data) {
             io.to(room_in_chat).emit("msg_room", result);
           });
         }
-      } else {
+      } 
+      else {
+        console.log("Room name:",present_room_id)
         if(file_in_chat){
+          console.log("incomming msg have file upload and correct room")
           let save_msg = new message({
             username: u_name_in_chat,
             msg: msg_in_chat,
-            data:{data: new Buffer.from(file_in_chat.file).toString("base64"),
-                  name: file_in_chat.file_name,
-                  contentType: file_in_chat.content_type},
+            data:{data: new Buffer.from(file_in_chat.data).toString("base64"),
+                  name: file_in_chat.name,
+                  contentType: file_in_chat.contentType},
+            room: present_room_id,
             date: date_in_chat,
           });
           save_msg.save((err, result) => {
@@ -785,10 +796,12 @@ function handleFrontendFrame(data) {
           });
         }
         else{
+          console.log("incomming msg no file upload and correct room")
           let save_msg = new message({
             username: u_name_in_chat,
             msg: msg_in_chat,
             date: date_in_chat,
+            room: present_room_id,
           });
           save_msg.save((err, result) => {
             if (err) throw err;
@@ -800,16 +813,17 @@ function handleFrontendFrame(data) {
   }
   if (extract_json_obj.FLAG === "room"){
     let data_in_create_room = extract_json_obj.msg
-        let new_room = mongoose.model(data_in_create_room, ChatSchema);
+    let regex = data_in_create_room.replace("Welcome to ", "")
+        let new_room = mongoose.model(regex, ChatSchema);
         let data_room = new new_room({
           username: "Admin",
-          msg: `Welcome to ${data_in_create_room}`,
+          msg: data_in_create_room,
           date: new moment().format("DD/MM/YYYY HH:mm:ss"),
         });
         let room = new room_list({
-          RoomID: data_in_create_room,
+          RoomID: regex,
         });
-        room.save(data_in_create_room);
+        room.save(regex);
         data_room.save((err, result) => {
           if (err) throw err;
           console.log(result);
