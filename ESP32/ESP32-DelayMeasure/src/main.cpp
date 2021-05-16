@@ -32,7 +32,7 @@ void receivedCallback( uint32_t from, String &msg ) {
   JSONVar recv = JSON.parse(msg.c_str());
   recv["H"]["FR"] =  String(from);
 
-  if ((int) recv["H"]["F"] == DATA){
+  if ((int) recv["F"] == DATA){
     returnACK(from, (int) recv["H"]["ID"], (int) recv["H"]["FID"]);
   }
 
