@@ -113,7 +113,7 @@ function READY(f_ready) {
         console.log(helperFx.time_el(T_ST), "ESP is ready")
     }
 
-    if (TS_BUFF.length) {
+    if (TS_BUFF.length > 0) {
         sendSerialInterval = null
         setSerialRoutine()
     } else {
@@ -234,7 +234,7 @@ function CHANGE(f_change) {
         if (NODE_LIST.indexOf(key) >= 0) {
             if (ALL_NODE[key].status === "OFFLINE"){
                 if (key in ALL_SERVER) {
-                    ALL_SERVER[key.status] = "ONLINE";
+                    ALL_SERVER[key].status = "ONLINE";
                     ALL_NODE[key].status = "ONLINE";
                     console.log(helperFx.time_el(T_ST),"notice: server", key, ALL_SERVER[key].name, "back online");
                     io.to(present_room_id).emit("msg_room", {
@@ -255,7 +255,7 @@ function CHANGE(f_change) {
                     }
 
                     //start sending message again
-                    if (TS_BUFF.length) {
+                    if (TS_BUFF.length > 0) {
                         setSerialRoutine();
                     }
                 } else {
@@ -275,7 +275,7 @@ function CHANGE(f_change) {
                         ALL_NODE[key].hop = "ERROR"
                     }
 
-                    if (TS_BUFF.length) {
+                    if (TS_BUFF.length > 0) {
                         setSerialRoutine();
                     }
                 }
@@ -366,7 +366,7 @@ function ACK(f_ack) {
             console.log(helperFx.time_el(T_ST), "ACK", f_ack.H, "DST", msg.DST, "RTT", ACK_RE_TIME-msg.T_SEND)
             console.log("ALL SERVER:", ALL_SERVER, "ALL NODE:",ALL_NODE)
             S_BUFF[i].ACKED == true;
-
+            found = true
             //check if all of the fragmented message was acked
             fragLen = msg.msg.H.FL;
             ackedCount = 0;
@@ -435,7 +435,7 @@ function sendFragment(dataStr, dest, _id, FFLAG) {
         msg.msg.H.FID += 1;
 
         msg.PHYS_LEN = JSON.stringify(msg.msg).length
-        TS_BUFF.push(msg)
+        TS_BUFF.push(JSON.parse(JSON.stringify(msg)))
         setSerialRoutine()
     }
 }
@@ -488,7 +488,6 @@ function sendData(data, dest, _id) {
         if (dest === "ALL") {
             console.log("data < FRAG")
             console.log(ALL_SERVER)
-            console.log(`will send to, ${server}, ${ALL_SERVER[server]}`)
             for (var server in ALL_SERVER) {
                 console.log(helperFx.time_el(T_ST),"will send to", server, ALL_SERVER[server]);
                 sendSingle(dataStr, server, _id, data.FLAG);
@@ -514,7 +513,7 @@ function setSerialRoutine() {
 
 function sendToSerial() {
     let msgToSend = null;
-    if (TS_BUFF.length) {
+    if (TS_BUFF.length > 0) {
 
         msgToSend = pickNextMSG()
         try{
@@ -525,13 +524,16 @@ function sendToSerial() {
         }
         if (msgToSend != null) {
             console.log(helperFx.time_el(T_ST),"sending", msgToSend.msg.F, "ID:", msgToSend.msg.H.ID)
-
+            console.log("Physical length: ",JSON.stringify(msgToSend.msg).length)
             PORT.write(JSON.stringify(msgToSend.msg))
             msgToSend.T_SEND = Date.now();
             S_BUFF.push(msgToSend);
 
             if (timedoutRoutine == null) {
                 timedoutRoutine = setInterval(msgTimeout, 500);
+            }
+            if(TS_BUFF.length == 0){
+              sendSerialInterval = null;
             }
         } else {
             console.log(helperFx.time_el(T_ST), "all server is offline nothing to send", TS_BUFF.length, 'msgs in queue');
@@ -544,7 +546,7 @@ function sendToSerial() {
 }
 
 function serialHandler(data){
-    console.log("incoming data:", data)
+    // console.log("incoming data:", data)
     switch(data.F){
         case 0: INIT(data); break;
         case 1: READY(data); break;
@@ -562,7 +564,8 @@ function pickNextMSG() {
     while (true) {
         shiftCount += 1
         let selectedMsg = TS_BUFF[0]
-        console.log("selected MSG:",TS_BUFF[0])
+        console.log("selected MSG:",TS_BUFF[0], "length: ", TS_BUFF.length)
+        console.log("message:",selectedMsg.DST,"status:",ALL_NODE[selectedMsg.DST].status)
         try {
             if (selectedMsg.msg.F == 3 && ALL_NODE[selectedMsg.DST].status === "ONLINE") {
                 pickedMsg = selectedMsg
@@ -855,6 +858,11 @@ function msgTimeout() {
             if (msg.msg.F === 3) {
                 toSplice.push(i)
             } else if (Date.now() - msg.T_SEND >= config.TIMEOUT[ALL_NODE[msg.DST].hop]) {
+              if("ACK" in msg){
+                if(msg.ACKED){
+                  continue
+                }
+              }
                 currentTime = Date.now()
                 var timedoutMsg = msg;
                 
