@@ -121,10 +121,10 @@ function READY(f_ready) {
   }
 
   if (TS_BUFF.length > 0) {
-    sendSerialInterval = null;
+    // sendSerialInterval = null
     setSerialRoutine();
   } else {
-    sendSerialInterval = null;
+    // sendSerialInterval = null
     BLT = config.BURST;
   }
 }
@@ -186,7 +186,7 @@ function DATA(f_data) {
       handleFrontendFrame(f_data.D[i]);
     }
   } else {
-    if (f_data.H.ID in RECV_BUFF[f_data.H.FR]) {
+    if (String(f_data.H.ID) in RECV_BUFF[f_data.H.FR]) {
       RECV_BUFF[f_data.H.FR][f_data.H.ID][f_data.H.FID] = f_data;
       console.log("recv fragmented data:", f_data.H);
 
@@ -596,10 +596,8 @@ function sendToSerial() {
   var msgToSend = null;
 
   if (TS_BUFF.length > 0) {
-    msgToSend = pickNextMSG();
-
     try {
-      pickNextMSG();
+      msgToSend = pickNextMSG();
     } catch (err) {
       console.error(err);
     }
@@ -615,9 +613,7 @@ function sendToSerial() {
         timedoutRoutine = setInterval(msgTimeout, 500);
       }
 
-      if (TS_BUFF.length == 0) {
-        sendSerialInterval = null;
-      }
+      sendSerialInterval = null;
     } else {
       console.log(helperFx.time_el(T_ST), "all server is offline nothing to send", TS_BUFF.length, 'msgs in queue');
       sendSerialInterval = null;
