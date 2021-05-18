@@ -109,16 +109,13 @@ function READY(f_ready) {
         recentSend.ER_COUNT += 1
         //Retry this message
         TS_BUFF.push(recentSend)
+        
+        if(TS_BUFF.length > 0) {
+            setSerialRoutine("READY")
+        }
+
     } else {
         console.log(helperFx.time_el(T_ST), "ESP is ready")
-    }
-
-    if (TS_BUFF.length > 0) {
-        // sendSerialInterval = null
-        setSerialRoutine()
-    } else {
-        // sendSerialInterval = null
-        BLT = config.BURST
     }
 }
 
@@ -256,7 +253,7 @@ function CHANGE(f_change) {
 
                     //start sending message again
                     if (TS_BUFF.length > 0) {
-                        setSerialRoutine();
+                        setSerialRoutine("CHANGE - SERVER");
                     }
                 } else {
                     ALL_NODE[key].status = "ONLINE";
@@ -276,7 +273,7 @@ function CHANGE(f_change) {
                     }
 
                     if (TS_BUFF.length > 0) {
-                        setSerialRoutine();
+                        setSerialRoutine("CHANGE - NODE");
                     }
                 }
             }
@@ -364,38 +361,21 @@ function ACK(f_ack) {
 
         else if (f_ack.H.ID == msg.msg.H.ID && f_ack.H.FID == msg.msg.H.FID) {
             console.log(helperFx.time_el(T_ST), "ACK", f_ack.H, "DST", msg.DST, "RTT", ACK_RE_TIME-msg.T_SEND)
-            console.log("ALL SERVER:", ALL_SERVER, "ALL NODE:",ALL_NODE)
-            S_BUFF[i].ACKED == true;
+
+            fragCount = 0
+            for (let [j,mssg] of S_BUFF.entries()) {
+                if (f_ack.H.ID == mssg.msg.H.ID) {
+                    fragCount += 1
+                }
+            }
+            console.log("from ACK fx: remaining frag is: ", fragCount)
+            if(fragCount == 1) {
+                console.log("update frontend of fragment", msg.msg.H)
+                updateSynced(msg.FFLAG, msg.ID, msg.DST)
+            }
+            S_BUFF.splice(i,1)
             found = true
-            //check if all of the fragmented message was acked
-            fragLen = msg.msg.H.FL;
-            ackedCount = 0;
-            for (let [j, m] of S_BUFF.entries()) {
-                if (f_ack.H.ID == m.msg.H.ID && m.ACKED) {
-                    ackedCount += 1
-                    if (ackedCount == msg.msg.H.FL) {
-                        break
-                    }
-                } else if (f_ack.H.ID == m.msg.H.ID && !m.ACKED) {
-                    break
-                }
-            }
-
-            if (ackedCount == msg.msg.H.FL) {
-                toSplice = []
-                for (let [j, m] of S_BUFF.entries()) {
-                    if (f_ack.H.ID == m.msg.H.ID) {
-                      toSplice.push(j)
-                    }
-                }
-
-                toSplice.forEach((item, index) => {
-                    S_BUFF.splice(item,1)
-                })
-
-                updateSynced(msg.FFLAG, msg.id, msg.DST)
-            }
-            break;
+            break
         }
     }
 
@@ -414,7 +394,6 @@ function sendFragment(dataStr, dest, _id, FFLAG) {
         PHYS_LEN: 0,
         id: _id,
         FFLAG: FFLAG,
-        ACKED: false,
         msg: {
             F: 4,
             H: {
@@ -429,6 +408,8 @@ function sendFragment(dataStr, dest, _id, FFLAG) {
         }
     }
 
+    console.log("this message will be fragmented into", dataFrag.length, "pieces")
+
     for (let [i, frag] of dataFrag.entries()) {
         // console.log("type of frag", typeof(frag), frag )
         msg.msg.D = frag,
@@ -436,7 +417,8 @@ function sendFragment(dataStr, dest, _id, FFLAG) {
 
         msg.PHYS_LEN = JSON.stringify(msg.msg).length
         TS_BUFF.push(JSON.parse(JSON.stringify(msg)))
-        setSerialRoutine()
+
+        setSerialRoutine("SEND - FRAG")
     }
 }
 
@@ -465,7 +447,7 @@ function sendSingle(dataStr, dest, _id, FFLAG) {
     msg.AGGED.push(msg.msg.H.ID)
     msg.PHYS_LEN = JSON.stringify(msg.msg).length
     TS_BUFF.push(msg)
-    setSerialRoutine()
+    setSerialRoutine("SEND - SINGLE")
 }
 
 function sendData(data, dest, _id) {
@@ -498,16 +480,20 @@ function sendData(data, dest, _id) {
     }
 }
 
-function setSerialRoutine() {
-    if (sendSerialInterval == null) {
-        if (BLT == 0) {
-            BLT = config.BURST
-            sendSerialInterval = setTimeout(sendToSerial, Math.random() * config.DELAY_MAX + config.DELAY_MIN)
-        }
-        else {
-            sendSerialInterval = setTimeout(sendToSerial, Math.random() * config.DELAY_MIN)
-            BLT -= 1
-        }
+function setSerialRoutine(issuer) {
+    if (sendSerialInterval == null && TS_BUFF.length > 0) {
+        console.log("received set serial routine from", issuer, "and set send to serial routine")
+        sendSerialInterval = setTimeout(sendToSerial, Math.random() * config.DELAY_MAX + config.DELAY_MIN)
+        // if (BLT == 0) {
+        //     BLT = config.BURST
+        //     sendSerialInterval = setTimeout(sendToSerial, Math.random() * config.DELAY_MAX + config.DELAY_MIN)
+        // }
+        // else {
+        //     sendSerialInterval = setTimeout(sendToSerial, Math.random() * config.DELAY_MIN)
+        //     BLT -= 1
+        // }
+    } else {
+        console.log("received set serial routine from", issuer, "and do nothing")
     }
 }
 
@@ -559,6 +545,12 @@ function pickNextMSG() {
 
     while (true) {
         shiftCount += 1
+
+        if (TS_BUFF.length == 0) {
+            console.log("to send buffer is empty")
+            return null
+        }
+
         let selectedMsg = TS_BUFF[0]
         console.log("selected MSG:",TS_BUFF[0], "length: ", TS_BUFF.length)
         console.log("message:",selectedMsg.DST,"status:",ALL_NODE[selectedMsg.DST].status)
@@ -714,7 +706,7 @@ function echoServer(dest) {
 
 
     TS_BUFF.push(msg);
-    setSerialRoutine();
+    setSerialRoutine("ECHO - SERVER");
 }
 
 function handleFrontendFrame(data) {
@@ -854,20 +846,16 @@ function msgTimeout() {
             if (msg.msg.F === 3) {
                 toSplice.push(i)
             } else if (Date.now() - msg.T_SEND >= config.TIMEOUT[ALL_NODE[msg.DST].hop]) {
-              if("ACK" in msg){
-                if(msg.ACKED){
-                  continue
-                }
-              }
+
                 currentTime = Date.now()
                 var timedoutMsg = msg;
                 
                 timedoutMsg.ER_COUNT += 1
 
-                console.log(helperFx.time_el(T_ST), "TIMEDOUT", timedoutMsg.msg.H.ID, "at", (currentTime - msg.T_SEND) / 1000,"sec")
+                console.log(helperFx.time_el(T_ST), "TIMEDOUT", timedoutMsg.msg.H, "at", (currentTime - msg.T_SEND) / 1000,"sec")
                 toSplice.push(i)
                 TS_BUFF.push(timedoutMsg)
-                setSerialRoutine();
+                setSerialRoutine("timeout function");
             }
         }
 
