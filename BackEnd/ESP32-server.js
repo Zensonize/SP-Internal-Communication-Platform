@@ -74,6 +74,27 @@ function initNodeList() {
         console.log(helperFx.time_el(T_ST),"NODE LIST from INIT", NODE_LIST);
         console.log(helperFx.time_el(T_ST),"ALL NODE from INIT", ALL_NODE);
       });
+
+    // init server
+    NodeSchema_list.find({ isServer: true }, (err, result) => {
+        if (err) throw err;
+        SERVER_LIST = result;
+        console.log("Server lists: ", SERVER_LIST);
+        for (var server in SERVER_LIST) {
+            ALL_SERVER[SERVER_LIST[server].nodeID] = {
+                status: "OFFLINE",
+                name: SERVER_LIST[server].nodeName,
+                hop: -1,
+                path: ""
+            };
+            if (!(SERVER_LIST[server].nodeID in RECV_BUFF)) {
+                RECV_BUFF[SERVER_LIST[server].nodeID] = {};
+            }
+        }
+        console.log("SERVER LIST", SERVER_LIST);
+        console.log("ALL SERVER", ALL_SERVER);
+      });
+
 }
 
 function INIT(f_init) {
@@ -133,6 +154,7 @@ function ECHO(f_echo) {
             });
             ALL_SERVER[f_echo.H.FR].hop = helperFx.calcHop(f_echo.H.FR, TOPOLOGY)
             ALL_NODE[f_echo.H.FR].hop = ALL_SERVER[f_echo.H.FR].hop
+            RECV_BUFF[f_data.H.FR] = {}
         }
         if (f_echo.D != ALL_SERVER[f_echo.H.FR].name) {
             NodeSchema_list.updateOne(
@@ -158,7 +180,9 @@ function ECHO(f_echo) {
 
         ALL_SERVER[f_echo.H.FR].hop = helperFx.calcHop(f_echo.H.FR,TOPOLOGY);
         ALL_NODE[f_echo.H.FR].hop = ALL_SERVER[f_echo.H.FR].hop
-        RECV_BUFF[f_echo.H.FR] = {};
+        if (!(f_echo.H.FR in RECV_BUFF)) {
+            RECV_BUFF[f_echo.H.FR] = {};
+        }
 
         NodeSchema_list.updateOne(
             { nodeID: f_echo.H.FR },
