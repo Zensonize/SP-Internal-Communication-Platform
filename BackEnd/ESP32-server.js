@@ -88,7 +88,7 @@ function initNodeList() {
                 path: ""
             };
             if (!(SERVER_LIST[server].nodeID in RECV_BUFF)) {
-                RECV_BUFF[SERVER_LIST[server].nodeID] = {};
+                RECV_BUFF[String(SERVER_LIST[server].nodeID)] = {};
             }
         }
         console.log("SERVER LIST", SERVER_LIST);
@@ -113,6 +113,7 @@ function INIT(f_init) {
 }
 
 function READY(f_ready) {
+    console.log(f_ready)
     if (f_ready.D == 0) {
         recentSend = S_BUFF.pop()
         console.error("NO ROUTE for MSG", recentSend.H.ID, "TO", recentSend.DST)
@@ -137,6 +138,9 @@ function READY(f_ready) {
 
     } else {
         console.log(helperFx.time_el(T_ST), "ESP is ready")
+        if(TS_BUFF.length > 0) {
+          setSerialRoutine("READY")
+      }
     }
 }
 
@@ -148,13 +152,13 @@ function ECHO(f_echo) {
 
             console.log(helperFx.time_el(T_ST),"Server", ALL_SERVER[f_echo.H.FR].name, "back online")
             io.to(present_room_id).emit("msg_room", {
-              msg: `"notice: server"${ALL_SERVER[recentSend.DST].name} back online`,
+              msg: `"notice: server"${ALL_SERVER[f_echo.H.FR].name} back online`,
               date: new moment().format("DD/MM/YYYY HH:mm:ss"),
               room: present_room_id,
             });
             ALL_SERVER[f_echo.H.FR].hop = helperFx.calcHop(f_echo.H.FR, TOPOLOGY)
             ALL_NODE[f_echo.H.FR].hop = ALL_SERVER[f_echo.H.FR].hop
-            RECV_BUFF[f_data.H.FR] = {}
+            RECV_BUFF[String(f_data.H.FR)] = {}
         }
         if (f_echo.D != ALL_SERVER[f_echo.H.FR].name) {
             NodeSchema_list.updateOne(
@@ -177,11 +181,15 @@ function ECHO(f_echo) {
         ALL_NODE[f_echo.H.FR].status = "ONLINE";
 
         console.log(helperFx.time_el(T_ST),"added new server", ALL_SERVER[f_echo.H.FR].name);
-
+        io.to(present_room_id).emit("msg_room", {
+          msg: `"added new server"${ALL_SERVER[f_echo.H.FR].name} `,
+          date: new moment().format("DD/MM/YYYY HH:mm:ss"),
+          room: present_room_id,
+        });
         ALL_SERVER[f_echo.H.FR].hop = helperFx.calcHop(f_echo.H.FR,TOPOLOGY);
         ALL_NODE[f_echo.H.FR].hop = ALL_SERVER[f_echo.H.FR].hop
         if (!(f_echo.H.FR in RECV_BUFF)) {
-            RECV_BUFF[f_echo.H.FR] = {};
+            RECV_BUFF[String(f_echo.H.FR)] = {};
         }
 
         NodeSchema_list.updateOne(
@@ -199,41 +207,43 @@ function ECHO(f_echo) {
 }
 
 function DATA(f_data) {
-    console.log("file Data:", f_data.D[0]);
+    // console.log("file Data:", f_data.D);
     if (f_data.H.FID == -1) {
         console.log(helperFx.time_el(T_ST),"RECEIVED", f_data.H.ID)
-
         for (i in f_data.D) {
             handleFrontendFrame(f_data.D[i])
         }
     } else {
-        if (String(f_data.H.ID) in RECV_BUFF[f_data.H.FR]) {
-            RECV_BUFF[f_data.H.FR][f_data.H.ID][f_data.H.FID] = f_data
+        if (String(f_data.H.ID) in RECV_BUFF[String(f_data.H.FR)]) {
+            RECV_BUFF[String(f_data.H.FR)][String(f_data.H.ID)][String(f_data.H.FID)] = f_data
 
             console.log("recv fragmented data:", f_data.H)
-
-            if (RECV_BUFF[f_data.H.FR][f_data.H.ID].length == f_data.H.FL) {
+            console.log("total fragmented received", Object.keys(RECV_BUFF[String(f_data.H.FR)][String(f_data.H.ID)]).length)
+            if (Object.keys(RECV_BUFF[String(f_data.H.FR)][String(f_data.H.ID)]).length == f_data.H.FL) {
                 console.log(helperFx.time_el(T_ST), "All fragmented message of ", f_data.H.ID, "received")
-                
+                dataFull = "";
                 try {
-                    dataFull = "";
                     for (index = 0; index < f_data.H.FL; index++) {
-                        dataFull.concat(RECV_BUFF[f_data.H.FR][f_data.H.ID][index].D)
+                      // console.log("Data recv_buff:",RECV_BUFF[String(f_data.H.FR)][String(f_data.H.ID)][String(index)])
+                        dataFull = dataFull.concat(RECV_BUFF[String(f_data.H.FR)][String(f_data.H.ID)][String(index)].D)
                     }
                     console.log("data from dataFull:", dataFull)
                 } catch (err) {
-                    console.log("ERRPR when trying to reconstruct fragemnted message", err)
+                    console.log("ERROR when trying to reconstruct fragemnted message", err)
                 }
                 
                 console.log(helperFx.time_el(T_ST),"RECEIVED-FRAG", f_data.H.ID)
 
                 handleFrontendFrame(dataFull)
-                delete RECV_BUFF[f_data.H.FR][f_data.H.ID]
+                delete RECV_BUFF[String(f_data.H.FR)][String(f_data.H.ID)]
             }
 
           } else {
-            RECV_BUFF[f_data.H.FR][f_data.H.ID] = {};
-            RECV_BUFF[f_data.H.FR][f_data.H.ID][f_data.H.FID] = f_data
+            console.log("recv first fragmented data:", f_data.H)
+            RECV_BUFF[String(f_data.H.FR)][String(f_data.H.ID)] = {};
+            RECV_BUFF[String(f_data.H.FR)][String(f_data.H.ID)][String(f_data.H.FID)] = f_data
+            console.log("total fragmented received", Object.keys(RECV_BUFF[String(f_data.H.FR)][String(f_data.H.ID)]).length)
+
           }
     }
 
@@ -259,7 +269,7 @@ function CHANGE(f_change) {
                     ALL_NODE[key].status = "ONLINE";
                     console.log(helperFx.time_el(T_ST),"notice: server", key, ALL_SERVER[key].name, "back online");
                     io.to(present_room_id).emit("msg_room", {
-                      msg: `"notice: server",${key},${ALL_SERVER[recentSend.DST].name} back online`,
+                      msg: `"notice: server",${key},${ALL_SERVER[key].name} back online`,
                       date: new moment().format("DD/MM/YYYY HH:mm:ss"),
                       room: present_room_id,
                     });
@@ -392,6 +402,12 @@ function ACK(f_ack) {
                     fragCount += 1
                 }
             }
+            for (let [j,mssg] of TS_BUFF.entries()) {
+              if (f_ack.H.ID == mssg.msg.H.ID) {
+                  fragCount += 1
+              }
+          }
+            
             console.log("from ACK fx: remaining frag is: ", fragCount)
             if(fragCount == 1) {
                 console.log("update frontend of fragment", msg.msg.H)
@@ -433,6 +449,7 @@ function sendFragment(dataStr, dest, _id, FFLAG) {
     }
 
     console.log("this message will be fragmented into", dataFrag.length, "pieces")
+    console.log("TS_buff initial len", TS_BUFF.length)
 
     for (let [i, frag] of dataFrag.entries()) {
         // console.log("type of frag", typeof(frag), frag )
@@ -443,6 +460,10 @@ function sendFragment(dataStr, dest, _id, FFLAG) {
         TS_BUFF.push(JSON.parse(JSON.stringify(msg)))
 
         setSerialRoutine("SEND - FRAG")
+    }
+    console.log("TS_buff final len", TS_BUFF.length)
+    for(let [i,msg] of TS_BUFF.entries()) {
+      console.log("add sendfrag res",msg.msg.H)
     }
 }
 
@@ -506,7 +527,7 @@ function sendData(data, dest, _id) {
 
 function setSerialRoutine(issuer) {
     if (sendSerialInterval == null && TS_BUFF.length > 0) {
-        console.log("received set serial routine from", issuer, "and set send to serial routine")
+        console.log("received set serial routine from", issuer, "and set send to serial routine", "in queue",TS_BUFF.length)
         sendSerialInterval = setTimeout(sendToSerial, Math.random() * config.DELAY_MAX + config.DELAY_MIN)
         // if (BLT == 0) {
         //     BLT = config.BURST
@@ -517,7 +538,7 @@ function setSerialRoutine(issuer) {
         //     BLT -= 1
         // }
     } else {
-        console.log("received set serial routine from", issuer, "and do nothing")
+        console.log("received set serial routine from", issuer, "and do nothing","in queue",TS_BUFF.length)
     }
 }
 
@@ -526,11 +547,12 @@ function sendToSerial() {
     if (TS_BUFF.length > 0) {
         try{
           msgToSend = pickNextMSG()
+          console.log("the message to serial", msgToSend)
         }
         catch(err){
           console.error(err)
         }
-        if (msgToSend != null) {
+        if (msgToSend != null && typeof(msgToSend) != 'undefined') {
             console.log(helperFx.time_el(T_ST),"sending", msgToSend.msg.F, "ID:", msgToSend.msg.H.ID)
             console.log("Physical length: ",JSON.stringify(msgToSend.msg).length)
             PORT.write(JSON.stringify(msgToSend.msg))
@@ -576,24 +598,24 @@ function pickNextMSG() {
         }
 
         let selectedMsg = TS_BUFF[0]
-        console.log("selected MSG:",TS_BUFF[0], "length: ", TS_BUFF.length)
+        // console.log("selected MSG:",TS_BUFF[0], "length: ", TS_BUFF.length)
         console.log("message:",selectedMsg.DST,"status:",ALL_NODE[selectedMsg.DST].status)
         try {
             if (selectedMsg.msg.F == 3 && ALL_NODE[selectedMsg.DST].status === "ONLINE") {
                 pickedMsg = selectedMsg
-                console.log("from if cond:", pickedMsg)
+                // console.log("from if cond:", pickedMsg)
                 TS_BUFF.splice(0,1)
                 return pickedMsg
             } else if (ALL_NODE[selectedMsg.DST].status === "ONLINE") {
                 pickedMsg = selectedMsg
-                console.log("from else if cond:", pickedMsg)
+                // console.log("from else if cond:", pickedMsg)
                 TS_BUFF.splice(0,1);
                 if (selectedMsg.msg.H.FID != -1 || selectedMsg.msg.H.AG != 1){
                     return pickedMsg
                 }
                 break;
             } else {
-                console.log("from else cond:", pickedMsg)
+                // console.log("from else cond:", pickedMsg)
                 TS_BUFF.push(selectedMsg);
                 TS_BUFF.splice(0,1);
                 if (shiftCount == TS_BUFF.length) {
@@ -734,7 +756,7 @@ function echoServer(dest) {
 }
 
 function handleFrontendFrame(data) {
-  // console.log(data)
+  console.log(data)
   try {
     extract_json_obj = JSON.parse(data);
     console.log("Data from Json Obj:",JSON.parse(data))
@@ -763,7 +785,7 @@ function handleFrontendFrame(data) {
           let save_msg = new message({
             username: u_name_in_chat,
             msg: msg_in_chat,
-            data:{data: new Buffer.from(file_in_chat.data).toString("base64"),
+            data:{data: file_in_chat.data,
                   name: file_in_chat.name,
                   contentType: file_in_chat.contentType},
             room: room_in_chat,
@@ -798,7 +820,7 @@ function handleFrontendFrame(data) {
           let save_msg = new message({
             username: u_name_in_chat,
             msg: msg_in_chat,
-            data:{data: new Buffer.from(file_in_chat.data).toString("base64"),
+            data:{data: file_in_chat.data,
                   name: file_in_chat.name,
                   contentType: file_in_chat.contentType},
             room: present_room_id,
