@@ -31,7 +31,7 @@
         },
         "D": "SERVER_NAME"
     },
-    "DATA": {
+    "DATA_NONFRAG": {
         "F": "FLAG - 4",
         "H": {
             "ID": "MSG_ID MAX 3 BYTE",
@@ -42,7 +42,20 @@
             "DA": "DESTINATION A",
             "DB": "DESTINATION B"
         },
-        "D":[""]
+        "D":["data MTU = 1320"]
+    },
+    "DATA_FRAG": {
+        "F": "FLAG - 4",
+        "H": {
+            "ID": "MSG_ID MAX 3 BYTE",
+            "FID": "FRAGEMNT ID MAX 4 BYTE",
+            "FL":"FRAGMENT LENGTH MAX 4 BYTE",
+            "AG":"Aggregation 1 BYTE",
+            "FR": "From",
+            "DA": "DESTINATION A",
+            "DB": "DESTINATION B"
+        },
+        "D": "data MTU = 1320"
     },
     "ACK": {
         "F" : "FLAG - 5",
