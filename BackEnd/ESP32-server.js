@@ -6,25 +6,75 @@ const ReadLine = require("@serialport/parser-readline");
 const { BURST } = require("./config");
 const PORT = new SerialPort(config.SERIAL_PORT, { baudRate: config.BUADRATE });
 const parser = PORT.pipe(new ReadLine({ delimiter: "\n" }));
+const winston = require('winston')
 
+const serialLogger = winston.createLogger({
+    level: 'info',
+    format: winston.format.json(),
+    defaultMeta: { service: 'user-service' },
+    transports: [
+      new winston.transports.File({ filename: 'serialLog.json' }),
+    ],
+});
 
+const msgLogger = winston.createLogger({
+    level: 'info',
+    format: winston.format.json(),
+    defaultMeta: { service: 'user-service' },
+    transports: [
+      new winston.transports.File({ filename: 'msgLog.json' }),
+    ],
+});
+
+const inMsgLogger = winston.createLogger({
+    level: 'info',
+    format: winston.format.json(),
+    defaultMeta: { service: 'user-service' },
+    transports: [
+      new winston.transports.File({ filename: 'inMsgLog.json' }),
+    ],
+});
+
+const nodeLogger = winston.createLogger({
+    level: 'info',
+    format: winston.format.json(),
+    defaultMeta: { service: 'user-service' },
+    transports: [
+      new winston.transports.File({ filename: 'nodeLog.json' }),
+    ],
+});
+
+const connectionLogger = winston.createLogger({
+    level: 'info',
+    format: winston.format.json(),
+    defaultMeta: { service: 'user-service' },
+    transports: [
+      new winston.transports.File({ filename: 'connectionLog.json' }),
+    ],
+});
 
 PORT.on("open", () => {
   console.info("serial port open");
 });
 
 parser.on("data", (data) => {
-  try {
-    const dataJSON = JSON.parse(data);
-    serialHandler(dataJSON);
-  } catch (err) {
-    if (data.search("CONNECTION") != -1) {
-        // console.log(helperFx.time_el(T_ST),data)
+    try {
+      if (data.search("CONNECTION") != -1) {
+          connectionLogger.log('info',{T:Date.now(), DT: helperFx.time_el(T_ST), msg: data})
+          // console.log(helperFx.time_el(T_ST),data)
+      } else {
+          const dataJSON = JSON.parse(data);
+          serialLogger.log('info',{T:Date.now(), DT: helperFx.time_el(T_ST), IO: "IN", FLAG: msgToSend.msg.F, HEADERS: dataJSON.H, PHYSLEN: data.length, RAW_DATA: data})
+          serialHandler(dataJSON);
+      }    
+    } catch (err) {
+      if (data.search("CONNECTION") != -1) {
+          // console.log(helperFx.time_el(T_ST),data)
+      }
+      else {
+          console.error("not parseable", data, err.name, err.message);
+      } 
     }
-    else {
-        console.error("not parseable", data, err.name, err.message);
-    } 
-  }
 });
 
 // helperFx.test();
@@ -41,7 +91,6 @@ let S_BUFF = []
 let RECV_BUFF = {}
 
 let ALL_NODE = {}
-let ALL_SERVER = {}
 let TOPOLOGY = {}
 
 let sendSerialInterval = null;
@@ -50,50 +99,35 @@ let timedoutRoutine = null;
 initNodeList()
 
 function initNodeList() {
-    NodeSchema_list.find({}, { nodeID: 1, _id: 0 }, (err, result) => {
-        console.log(helperFx.time_el(T_ST),"data from node schema", result);
+    NodeSchema_list.find({}, (err, result) => {
         if (err) throw err;
-        var NODE_LIST = [];
-        result
-          .map(({ nodeID }) => nodeID)
-          .forEach((element) => {
-            NODE_LIST.push(element);
-          });
-    
-        NODE_LIST.forEach((key) => {
-          ALL_NODE[key] = {
-            status: "OFFLINE",
-            hop: -1,
-          };
-        });
-        
-        for (var node in ALL_NODE) {
-            echoServer(node)
-        }
-
-        console.log(helperFx.time_el(T_ST),"NODE LIST from INIT", NODE_LIST);
-        console.log(helperFx.time_el(T_ST),"ALL NODE from INIT", ALL_NODE);
-      });
-
-    // init server
-    NodeSchema_list.find({ isServer: true }, (err, result) => {
-        if (err) throw err;
-        SERVER_LIST = result;
-        console.log("Server lists: ", SERVER_LIST);
-        for (var server in SERVER_LIST) {
-            ALL_SERVER[SERVER_LIST[server].nodeID] = {
+        NODE_LIST = result;
+        console.log("Server lists: ", NODE_LIST);
+        for (var node in NODE_LIST) {
+            ALL_NODE[NODE_LIST[node].nodeID] = {
                 status: "OFFLINE",
-                name: SERVER_LIST[server].nodeName,
+                isServer: NODE_LIST[node].isServer,
+                name: NODE_LIST[node].nodeName,
                 hop: -1,
                 path: ""
-            };
-            if (!(SERVER_LIST[server].nodeID in RECV_BUFF)) {
-                RECV_BUFF[String(SERVER_LIST[server].nodeID)] = {};
+            }
+
+            nodeLogger.log('info',{T:Date.now(), DT: helperFx.time_el(T_ST), SRC: "INIT", data: ALL_NODE[NODE_LIST[node].nodeID]})
+            
+            if (NODE_LIST[node].isServer) {
+                if (!(SERVER_LIST[server].nodeID in RECV_BUFF)) {
+                    console.log("created receive buffer for", SERVER_LIST[server].nodeID)
+                    RECV_BUFF[String(SERVER_LIST[server].nodeID)] = {};
+                }
             }
         }
-        console.log("SERVER LIST", SERVER_LIST);
-        console.log("ALL SERVER", ALL_SERVER);
-      });
+
+        console.log("NODE LIST", NODE_LIST);
+    });
+
+    for (var node in ALL_NODE) {
+        echoServer(node)
+    }
 
 }
 
@@ -116,17 +150,25 @@ function READY(f_ready) {
     console.log(f_ready)
     if (f_ready.D == 0) {
         recentSend = S_BUFF.pop()
+
+        T_ERROR = Date.now()
+        msgLogger.log('info',{T: T_ERROR, DT: helperFx.time_el(T_ST), TYPE: "NO ROUTE", T_ERR: T_ERROR, msg: recentSend, dT_ERR: T_ERROR-msg.T_SEND})
+
         console.error("NO ROUTE for MSG", recentSend.H.ID, "TO", recentSend.DST)
 
         //set server status to offline
         ALL_NODE[recentSend.DST].status = "OFFLINE"
-        ALL_SERVER[recentSend.DST].status = "OFFLINE"
+        ALL_NODE[recentSend.DST].hop = -1
+        ALL_NODE[recentSend.DST].path = ""
+        
         io.to(present_room_id).emit("msg_room", {
-          msg: `"notice: server",${recentSend.DST},${ALL_SERVER[recentSend.DST].name} went offline`,
+          msg: `"notice: server",${recentSend.DST},${ALL_NODE[recentSend.DST].name} went offline`,
           date: new moment().format("DD/MM/YYYY HH:mm:ss"),
           room: present_room_id,
         });
-        console.log(helperFx.time_el(T_ST),"notice: server",recentSend.DST,ALL_SERVER[recentSend.DST].name,"went offline")
+
+        console.log(helperFx.time_el(T_ST),"notice: server",recentSend.DST,ALL_NODE[recentSend.DST].name,"went offline")
+        nodeLogger.log('info',{T: T_ERROR, DT: helperFx.time_el(T_ST), SRC: "READY", data: ALL_NODE[recentSend.DST]})
 
         recentSend.ER_COUNT += 1
         //Retry this message
@@ -145,49 +187,63 @@ function READY(f_ready) {
 }
 
 function ECHO(f_echo) {
-   if (f_echo.H.FR in ALL_SERVER) {
-        if (ALL_SERVER[f_echo.H.FR].status === "OFFLINE") {
-            ALL_SERVER[f_echo.H.FR].status = "ONLINE";
-            ALL_NODE[f_echo.H.FR].status = "ONLINE";
+   if (f_echo.H.FR in ALL_NODE) {
+        if (f_echo.D != ALL_NODE[f_echo.H.FR].name) {
 
-            console.log(helperFx.time_el(T_ST),"Server", ALL_SERVER[f_echo.H.FR].name, "back online")
-            io.to(present_room_id).emit("msg_room", {
-              msg: `"notice: server"${ALL_SERVER[f_echo.H.FR].name} back online`,
-              date: new moment().format("DD/MM/YYYY HH:mm:ss"),
-              room: present_room_id,
-            });
-            ALL_SERVER[f_echo.H.FR].hop = helperFx.calcHop(f_echo.H.FR, TOPOLOGY)
-            ALL_NODE[f_echo.H.FR].hop = ALL_SERVER[f_echo.H.FR].hop
-            RECV_BUFF[String(f_data.H.FR)] = {}
-        }
-        if (f_echo.D != ALL_SERVER[f_echo.H.FR].name) {
+            console.log(helperFx.time_el(T_ST),"Server", ALL_NODE[f_echo.H.FR].name, "changes name to", f_echo.D)
+            
             NodeSchema_list.updateOne(
                 { nodeID: f_echo.H.FR },
                 {
-                  isServer: true,
-                  nodeName: f_echo.D,
+                isServer: true,
+                nodeName: f_echo.D,
                 },
                 (err, result) => {
-                  if (err) throw err;
-                  console.log(result);
+                if (err) throw err;
+                console.log(result);
                 }
             );
         }
+        if (ALL_NODE[f_echo.H.FR].status === "OFFLINE") {
+            ALL_NODE[f_echo.H.FR].status = "ONLINE";
+
+            console.log(helperFx.time_el(T_ST),"Server", ALL_NODE[f_echo.H.FR].name, "back online")
+            nodeLogger.log('info',{T:Date.now(), DT: helperFx.time_el(T_ST), SRC: "ECHO", data: ALL_NODE[f_echo.H.FR]})
+
+            io.to(present_room_id).emit("msg_room", {
+              msg: `"notice: server"${ALL_NODE[f_echo.H.FR].name} back online`,
+              date: new moment().format("DD/MM/YYYY HH:mm:ss"),
+              room: present_room_id,
+            });
+
+            ALL_NODE[f_echo.H.FR].hop = helperFx.calcHop(f_echo.H.FR, TOPOLOGY)
+            ALL_NODE[f_echo.H.FR].path = helperFx.routingPath(f_echo.H.FR, TOPOLOGY)
+            RECV_BUFF[String(f_data.H.FR)] = {}
+
+        }
+        
    } else {
-        ALL_SERVER[f_echo.H.FR] = {};
-        ALL_SERVER[f_echo.H.FR].name = f_echo.D;
+       try {
+            ALL_NODE[f_echo.H.FR] = {
+                status: "ONLINE",
+                name: f_echo.D,
+                isServer: true,
+                hop: helperFx.calcHop(f_echo.H.FR, TOPOLOGY),
+                path: helperFx.routingPath(f_echo.H.FR, TOPOLOGY)
+            };
+       } catch (err) {
+            console.log('error when calculating hop for', f_echo, TOPOLOGY)
+       }
 
-        ALL_SERVER[f_echo.H.FR].status = "ONLINE";
-        ALL_NODE[f_echo.H.FR].status = "ONLINE";
+        console.log(helperFx.time_el(T_ST),"added new server", ALL_NODE[f_echo.H.FR].name);
+        nodeLogger.log('info',{T:Date.now(), DT: helperFx.time_el(T_ST), SRC: "ECHO", data: ALL_NODE[f_echo.H.FR]})
 
-        console.log(helperFx.time_el(T_ST),"added new server", ALL_SERVER[f_echo.H.FR].name);
         io.to(present_room_id).emit("msg_room", {
-          msg: `"added new server"${ALL_SERVER[f_echo.H.FR].name} `,
+          msg: `"added new server"${ALL_NODE[f_echo.H.FR].name} `,
           date: new moment().format("DD/MM/YYYY HH:mm:ss"),
           room: present_room_id,
         });
-        ALL_SERVER[f_echo.H.FR].hop = helperFx.calcHop(f_echo.H.FR,TOPOLOGY);
-        ALL_NODE[f_echo.H.FR].hop = ALL_SERVER[f_echo.H.FR].hop
+
         if (!(f_echo.H.FR in RECV_BUFF)) {
             RECV_BUFF[String(f_echo.H.FR)] = {};
         }
@@ -264,84 +320,76 @@ function CHANGE(f_change) {
     for (var key in ALL_NODE) {
         if (NODE_LIST.indexOf(key) >= 0) {
             if (ALL_NODE[key].status === "OFFLINE"){
-                if (key in ALL_SERVER) {
-                    ALL_SERVER[key].status = "ONLINE";
-                    ALL_NODE[key].status = "ONLINE";
-                    console.log(helperFx.time_el(T_ST),"notice: server", key, ALL_SERVER[key].name, "back online");
-                    io.to(present_room_id).emit("msg_room", {
-                      msg: `"notice: server",${key},${ALL_SERVER[key].name} back online`,
-                      date: new moment().format("DD/MM/YYYY HH:mm:ss"),
-                      room: present_room_id,
-                    });
-                    //recalculate network hop
-                    try {
-                        ALL_SERVER[key].hop = helperFx.calcHop(key,TOPOLOGY);
-                        ALL_NODE[key].hop = ALL_SERVER[key].hop
-                        // ALL_SERVER[key].path = 
-                        // ALL_NODE[key].path = 
-                    } catch (err) {
-                        ALL_SERVER[key].hop = "ERROR"
-                        ALL_NODE[key].hop = "ERROR"
-                        console.log(helperFx.time_el(T_ST),"error,",err.name, err.message,",when calculating network hop for server", key, "TOPOLOGY", TOPOLOGY);
-                    }
+                
+                ALL_NODE[key].status = "ONLINE"
 
-                    //start sending message again
-                    if (TS_BUFF.length > 0) {
-                        setSerialRoutine("CHANGE - SERVER");
-                    }
+                if (ALL_NODE[key].isServer) {
+                    console.log(helperFx.time_el(T_ST),"notice: server", key, ALL_NODE[key].name, "back online");
+
+                    io.to(present_room_id).emit("msg_room", {
+                        msg: `"notice: server",${key},${ALL_NODE[key].name} back online`,
+                        date: new moment().format("DD/MM/YYYY HH:mm:ss"),
+                        room: present_room_id,
+                    });
                 } else {
-                    ALL_NODE[key].status = "ONLINE";
                     console.log(helperFx.time_el(T_ST),"notice: node", key, "back online");
+
                     io.to(present_room_id).emit("msg_room", {
-                      msg: `"notice: server",${key} back online`,
+                      msg: `"notice: node",${key} back online`,
                       date: new moment().format("DD/MM/YYYY HH:mm:ss"),
                       room: present_room_id,
                     });
-                    //recalculate network hop
-                    try {
-                        ALL_NODE[key].hop = helperFx.calcHop(key,TOPOLOGY);
-                        // ALL_NODE[key].path = 
-                    } catch (err) {
-                        console.log(helperFx.time_el(T_ST),"error,",err.name, err.message,",when calculating network hop for node", key, "TOPOLOGY", TOPOLOGY);
-                        ALL_NODE[key].hop = "ERROR"
+                }
+
+                //recalculate hop & path
+                try {
+                    ALL_NODE[key].hop = helperFx.calcHop(key, TOPOLOGY)
+                    ALL_NODE[key].path = helperFx.routingPath(key, TOPOLOGY)
+                } catch (err) {
+                    if (ALL_NODE[key].isServer) {
+                        console.log(helperFx.time_el(T_ST),"error,",err.name, err.message,",when calculating network hop for server", key, ALL_NODE[key].name, "TOPOLOGY", TOPOLOGY)
+                    } else {
+                        console.log(helperFx.time_el(T_ST),"error,",err.name, err.message,",when calculating network hop for node", key, "TOPOLOGY", TOPOLOGY)
                     }
 
-                    if (TS_BUFF.length > 0) {
-                        setSerialRoutine("CHANGE - NODE");
-                    }
                 }
+                
+                nodeLogger.log('info',{T:Date.now(), DT: helperFx.time_el(T_ST), SRC: "CHANGE", data: ALL_NODE[key]})
+
+                setSerialRoutine("CHANGE");
+
             }
             //remove the updated one
             NODE_LIST.splice(NODE_LIST.indexOf(key), 1);
+
         } else {
             if (ALL_NODE[key].status === "ONLINE") {
-                if (key in ALL_SERVER) {
-                    ALL_NODE[key].status = "OFFLINE"
-                    ALL_SERVER[key].status = "OFFLINE"
+
+                ALL_NODE[key].status = "OFFLINE"
+                ALL_NODE[key].hop = -1
+                ALL_NODE[key].path = ""
+
+                nodeLogger.log('info',{T:Date.now(), DT: helperFx.time_el(T_ST), SRC: "CHANGE", data: ALL_NODE[key]})
+
+                if (ALL_NODE[key].isServer) {
+                    console.log(helperFx.time_el(T_ST),"notice: server",key,ALL_NODE[key].name,"went offline")
                     
-                    console.log(helperFx.time_el(T_ST),"notice: server",key,ALL_SERVER[key].name,"went offline")
                     io.to(present_room_id).emit("msg_room", {
-                      msg: `"notice: server",${key},${ALL_SERVER[key].name} went offline`,
-                      date: new moment().format("DD/MM/YYYY HH:mm:ss"),
-                      room: present_room_id,
-                    });
-                    ALL_SERVER[key].hop = -1
-                    ALL_NODE[key].hop = -1
-                    ALL_SERVER[key].path = ""
-                    ALL_NODE[key].path = ""
+                        msg: `"notice: server",${key},${ALL_NODE[key].name} went offline`,
+                        date: new moment().format("DD/MM/YYYY HH:mm:ss"),
+                        room: present_room_id,
+                      });
                 } else {
-                    ALL_NODE[key].status = "OFFLINE"
-                    io.to(present_room_id).emit("msg_room", {
-                      msg: `"notice: server",${key} went offline`,
-                      date: new moment().format("DD/MM/YYYY HH:mm:ss"),
-                      room: present_room_id,
-                    });
                     console.log(helperFx.time_el(T_ST),"notice: node", key, "went offline")
 
-                    ALL_NODE[key].hop = -1
-                    ALL_NODE[key].path = ""
+                    io.to(present_room_id).emit("msg_room", {
+                        msg: `"notice: node",${key} went offline`,
+                        date: new moment().format("DD/MM/YYYY HH:mm:ss"),
+                        room: present_room_id,
+                    });
                 }
             }
+
             NODE_LIST.splice(NODE_LIST.indexOf(key), 1);
         }
     }
@@ -353,8 +401,13 @@ function CHANGE(f_change) {
         try {
             ALL_NODE[item] = {
                 status: "ONLINE",
-                hop: helperFx.calcHop(item,TOPOLOGY)
+                isServer: false,
+                name: "",
+                hop: helperFx.calcHop(item,TOPOLOGY),
+                path: helperFx.routingPath(item, TOPOLOGY)
             }
+            
+            nodeLogger.log('info',{T:Date.now(), DT: helperFx.time_el(T_ST), SRC: "CHANGE", node: key, data: ALL_NODE[key]})
 
             let new_node = new NodeSchema_list({
                 nodeID: item,
@@ -371,18 +424,21 @@ function CHANGE(f_change) {
         echoServer(item);
     })
 
-    console.log(ALL_NODE, ALL_SERVER)
+    console.log(ALL_NODE)
 }
 
 function ACK(f_ack) {
+
     let ACK_RE_TIME = Date.now();
     found = false;
-    console.log("ALL SERVER:", ALL_SERVER, "ALL NODE:",ALL_NODE)
             
     for (let [i,msg] of S_BUFF.entries()) {
         //for non fragmented messages
         if (f_ack.H.ID == msg.msg.H.ID && f_ack.H.FID == -1) {
+
             console.log(helperFx.time_el(T_ST), "ACK", f_ack.H, "DST", msg.DST, "RTT", ACK_RE_TIME-msg.T_SEND)
+            msgLogger.log('info',{T: ACK_RE_TIME, DT: helperFx.time_el(T_ST), TYPE: "ACK", T_ACK: ACK_RE_TIME, msg: msg, RTT: ACK_RE_TIME-msg.T_SEND})
+
             S_BUFF.splice(i,1);
 
             for (j in msg.id){
@@ -395,6 +451,7 @@ function ACK(f_ack) {
 
         else if (f_ack.H.ID == msg.msg.H.ID && f_ack.H.FID == msg.msg.H.FID) {
             console.log(helperFx.time_el(T_ST), "ACK", f_ack.H, "DST", msg.DST, "RTT", ACK_RE_TIME-msg.T_SEND)
+            msgLogger.log('info',{T: ACK_RE_TIME, DT: helperFx.time_el(T_ST), TYPE: "ACK", T_ACK: ACK_RE_TIME, msg: msg, RTT: ACK_RE_TIME-msg.T_SEND})
 
             fragCount = 0
             for (let [j,mssg] of S_BUFF.entries()) {
@@ -500,27 +557,28 @@ function sendData(data, dest, _id) {
     dataStr = JSON.stringify(data)
     // console.log(dataStr.length, config.NONFRAGMTU)
     if (dataStr.length > config.NONFRAGMTU) {
-        console.log("data > FRAG")
         if (dest === "ALL") {
-            for (var server in ALL_SERVER) {
-                console.log("send data to ALL server:",server, ALL_SERVER)
-                console.log(helperFx.time_el(T_ST),"will send to", server);
-                sendFragment(dataStr, server, _id, data.FLAG);
+            for (var server in ALL_NODE) {
+                if(server.isServer){
+                    console.log(helperFx.time_el(T_ST),"will fragment send to", server);
+                    sendFragment(dataStr, server, _id, data.FLAG);
+                }   
             }
         } else {
-            console.log("send data to specific server")
+            console.log(helperFx.time_el(T_ST),"will specifically fragment send to", server);
             sendFragment(dataStr, dest, _id, data.FLAG);
         }
     } else {
         if (dest === "ALL") {
-            console.log("data < FRAG")
-            console.log(ALL_SERVER)
-            for (var server in ALL_SERVER) {
-                console.log(helperFx.time_el(T_ST),"will send to", server, ALL_SERVER[server]);
-                sendSingle(dataStr, server, _id, data.FLAG);
+            for (var server in ALL_NODE) {
+                if(server.isServer){
+                    console.log(helperFx.time_el(T_ST),"will send to", server, ALL_NODE[server]);
+                    sendSingle(dataStr, server, _id, data.FLAG);
+                }     
             }
         } else {
-          sendSingle(dataStr, dest, _id, data.FLAG);
+            console.log(helperFx.time_el(T_ST),"will specifically send to", server);
+            sendSingle(dataStr, dest, _id, data.FLAG);
         }
     }
 }
@@ -555,10 +613,13 @@ function sendToSerial() {
         if (msgToSend != null && typeof(msgToSend) != 'undefined') {
             console.log(helperFx.time_el(T_ST),"sending", msgToSend.msg.F, "ID:", msgToSend.msg.H.ID)
             console.log("Physical length: ",JSON.stringify(msgToSend.msg).length)
+
             PORT.write(JSON.stringify(msgToSend.msg))
             msgToSend.T_SEND = Date.now();
             S_BUFF.push(msgToSend);
 
+            serialLogger.log('info',{T:msgToSend.T_SEND, DT: helperFx.time_el(T_ST), IO: "OUT", FLAG: msgToSend.msg.F ,HEADERS: msgToSend.msg.H, PHYSLEN: msgToSend.PHYS_LEN, RAW_DATA: JSON.stringify(msgToSend.msg)})
+            
             if (timedoutRoutine == null) {
                 timedoutRoutine = setInterval(msgTimeout, 500);
             }
@@ -575,6 +636,8 @@ function sendToSerial() {
 
 function serialHandler(data){
     // console.log("incoming data:", data)
+    inMsgLogger.log('info',{T:Date.now(), data: data})
+    
     switch(data.F){
         case 0: INIT(data); break;
         case 1: READY(data); break;
@@ -899,6 +962,9 @@ function msgTimeout() {
                 timedoutMsg.ER_COUNT += 1
 
                 console.log(helperFx.time_el(T_ST), "TIMEDOUT", timedoutMsg.msg.H, "at", (currentTime - msg.T_SEND) / 1000,"sec")
+
+                msgLogger.log('info',{T: currentTime, DT: helperFx.time_el(T_ST), TYPE: "TIMEOUT", T_TOUT: currentTime, msg: timedoutMsg, dT_TOUT: currentTime-timedoutMsg.T_SEND})
+
                 toSplice.push(i)
                 TS_BUFF.push(timedoutMsg)
                 setSerialRoutine("timeout function");

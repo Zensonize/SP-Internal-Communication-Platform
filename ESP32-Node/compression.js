@@ -20,7 +20,21 @@ var READY = {
     "F": 1,
     "D": 1
 }
-console.log(JSON.stringify(DATA).length)
+
+var TEST = {
+    "1": "hello",
+    "2": "test"
+}
+
+var strA = ""
+var strB = "bitch"
+var strC = "fuckoff"
+
+strA = strA.concat(strB),
+strA = strA.concat(strC)
+console.log(strA)
+
+// console.log(JSON.stringify(DATA).length)
 // console.log(JSON.stringify(READY))
 // console.log(JSON.stringify(READY).length.toString().length)
 // var mm = ["h1", "h2", "h3"]

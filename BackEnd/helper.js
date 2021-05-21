@@ -68,7 +68,7 @@ function toCustomString(list) {
     return list.join(' -> ');
 }
 
-function routingPath(topology, destination) {
+function routingPath(destination, topology) {
     return toCustomString(search(topology,destination))
 }
 
