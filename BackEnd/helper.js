@@ -49,12 +49,27 @@ function chunkSubstr(str, size) {
 }
 
 function search(topology, target) {
+    console.log("topology",topology,"target",target)
     if (topology.nodeId === target) {
+        console.log("match target")
         return [topology.nodeId];
     } else if (topology.subs) {
+        console.log("topology have subs")
+        console.log("sub length", topology.subs.length,"sub nodeId", topology.subs)
         for (let i = 0; i < topology.subs.length; i++) {
+            
             let current = topology.subs[i];
-            let result = search(current, target);
+            // we can't parse JSON format
+            console.log("stringify data",JSON.stringify(current.nodeId))
+            console.log("current subs",current.nodeId,"target subs",target)
+            let result = [search(current.nodeId, target),target];
+            // let result = [current.nodeId, target];
+            if (result.includes(undefined)){
+                result = result.filter(function (element){
+                    return element !== undefined
+                })   
+            }
+            console.log("result from search",result)
             if (result) {
                 result.unshift(topology.nodeId);
                 return result;
@@ -65,6 +80,7 @@ function search(topology, target) {
 }
 
 function toCustomString(list) {
+    console.log("custom list",list)
     return list.join(' -> ');
 }
 

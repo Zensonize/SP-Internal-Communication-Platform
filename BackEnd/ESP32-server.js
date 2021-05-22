@@ -7,13 +7,17 @@ const { BURST } = require("./config");
 const PORT = new SerialPort(config.SERIAL_PORT, { baudRate: config.BUADRATE });
 const parser = PORT.pipe(new ReadLine({ delimiter: "\n" }));
 const winston = require('winston')
-
+const fs = require('fs')
+const path_log = './debug_log'
+if(!fs.existsSync(path_log)){
+  fs.mkdirSync(path_log)
+}
 const serialLogger = winston.createLogger({
     level: 'info',
     format: winston.format.json(),
     defaultMeta: { service: 'user-service' },
     transports: [
-      new winston.transports.File({ filename: 'serialLog.json' }),
+      new winston.transports.File({ filename: `${path_log}/serialLog.json` }),
     ],
 });
 
@@ -22,7 +26,7 @@ const msgLogger = winston.createLogger({
     format: winston.format.json(),
     defaultMeta: { service: 'user-service' },
     transports: [
-      new winston.transports.File({ filename: 'msgLog.json' }),
+      new winston.transports.File({ filename: `${path_log}/msgLog.json` }),
     ],
 });
 
@@ -31,7 +35,7 @@ const inMsgLogger = winston.createLogger({
     format: winston.format.json(),
     defaultMeta: { service: 'user-service' },
     transports: [
-      new winston.transports.File({ filename: 'inMsgLog.json' }),
+      new winston.transports.File({ filename: `${path_log}/inMsgLog.json` }),
     ],
 });
 
@@ -40,7 +44,7 @@ const nodeLogger = winston.createLogger({
     format: winston.format.json(),
     defaultMeta: { service: 'user-service' },
     transports: [
-      new winston.transports.File({ filename: 'nodeLog.json' }),
+      new winston.transports.File({ filename: `${path_log}/nodeLog.json` }),
     ],
 });
 
@@ -49,7 +53,7 @@ const connectionLogger = winston.createLogger({
     format: winston.format.json(),
     defaultMeta: { service: 'user-service' },
     transports: [
-      new winston.transports.File({ filename: 'connectionLog.json' }),
+      new winston.transports.File({ filename: `${path_log}/connectionLog.json` }),
     ],
 });
 
@@ -64,7 +68,7 @@ parser.on("data", (data) => {
           // console.log(helperFx.time_el(T_ST),data)
       } else {
           const dataJSON = JSON.parse(data);
-          serialLogger.log('info',{T:Date.now(), DT: helperFx.time_el(T_ST), IO: "IN", FLAG: msgToSend.msg.F, HEADERS: dataJSON.H, PHYSLEN: data.length, RAW_DATA: data})
+          serialLogger.log('info',{T:Date.now(), DT: helperFx.time_el(T_ST), IO: "IN", FLAG: dataJSON.F, HEADERS: dataJSON.H, PHYSLEN: data.length, RAW_DATA: data})
           serialHandler(dataJSON);
       }    
     } catch (err) {
@@ -115,9 +119,9 @@ function initNodeList() {
             nodeLogger.log('info',{T:Date.now(), DT: helperFx.time_el(T_ST), SRC: "INIT", data: ALL_NODE[NODE_LIST[node].nodeID]})
             
             if (NODE_LIST[node].isServer) {
-                if (!(SERVER_LIST[server].nodeID in RECV_BUFF)) {
-                    console.log("created receive buffer for", SERVER_LIST[server].nodeID)
-                    RECV_BUFF[String(SERVER_LIST[server].nodeID)] = {};
+                if (!(NODE_LIST[node].nodeID in RECV_BUFF)) {
+                    console.log("created receive buffer for", NODE_LIST[node].nodeID)
+                    RECV_BUFF[String(NODE_LIST[node].nodeID)] = {};
                 }
             }
         }
@@ -553,7 +557,7 @@ function sendSingle(dataStr, dest, _id, FFLAG) {
 }
 
 function sendData(data, dest, _id) {
-  // console.log("data:", data, "to:", dest, "id",_id)
+  console.log("data:", data, "to:", dest, "id",_id)
     dataStr = JSON.stringify(data)
     // console.log(dataStr.length, config.NONFRAGMTU)
     if (dataStr.length > config.NONFRAGMTU) {
@@ -662,7 +666,7 @@ function pickNextMSG() {
 
         let selectedMsg = TS_BUFF[0]
         // console.log("selected MSG:",TS_BUFF[0], "length: ", TS_BUFF.length)
-        console.log("message:",selectedMsg.DST,"status:",ALL_NODE[selectedMsg.DST].status)
+        // console.log("message:",selectedMsg.DST,"status:",ALL_NODE[selectedMsg.DST].status)
         try {
             if (selectedMsg.msg.F == 3 && ALL_NODE[selectedMsg.DST].status === "ONLINE") {
                 pickedMsg = selectedMsg
