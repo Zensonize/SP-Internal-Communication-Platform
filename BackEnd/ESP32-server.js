@@ -563,7 +563,7 @@ function sendData(data, dest, _id) {
     if (dataStr.length > config.NONFRAGMTU) {
         if (dest === "ALL") {
             for (var server in ALL_NODE) {
-                if(server.isServer){
+                if(ALL_NODE[server].isServer){
                     console.log(helperFx.time_el(T_ST),"will fragment send to", server);
                     sendFragment(dataStr, server, _id, data.FLAG);
                 }   
@@ -575,7 +575,8 @@ function sendData(data, dest, _id) {
     } else {
         if (dest === "ALL") {
             for (var server in ALL_NODE) {
-                if(server.isServer){
+              console.log(server)
+                if(ALL_NODE[server].isServer){
                     console.log(helperFx.time_el(T_ST),"will send to", server, ALL_NODE[server]);
                     sendSingle(dataStr, server, _id, data.FLAG);
                 }     
