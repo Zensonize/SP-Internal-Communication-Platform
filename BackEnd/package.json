@@ -10,7 +10,7 @@
     "axios": "^0.21.1",
     "csv-writer": "^1.6.0",
     "express": "*",
-    "moment": "^2.29.1",
+    "moment": "^2.29.4",
     "mongoose": "^5.10.11",
     "serialport": "^9.0.6",
     "socket.io": "*"
